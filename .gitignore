@@ -1,0 +1,13 @@
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local Arduino/PlatformIO build output (not the CI-published docs/firmware/)
+/build/
+.pio/
+*.o
+*.elf
+
+# Secrets / local env
+.env
