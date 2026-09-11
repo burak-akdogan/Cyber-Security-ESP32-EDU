@@ -1,0 +1,85 @@
+name: Build firmware for ESP Web Tools
+
+# Compiles every classroom lab sketch under firmware/ with arduino-cli for the
+# ESP32 DevKit V1, then publishes .bin files + ESP Web Tools manifest.json
+# files into docs/firmware/<lab>/ so GitHub Pages (served from /docs) can
+# offer one-click browser flashing via https://esphome.github.io/esp-web-tools/.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "firmware/**"
+      - ".github/workflows/build-firmware.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install arduino-cli
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Install ESP32 core
+        run: |
+          arduino-cli config init --overwrite
+          arduino-cli config add board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32
+
+      - name: Compile every lab sketch and build manifests
+        run: |
+          set -e
+          FQBN="esp32:esp32:esp32"
+          OUT_ROOT="docs/firmware"
+          rm -rf "$OUT_ROOT"
+          mkdir -p "$OUT_ROOT"
+
+          # boot_app0.bin ships inside the ESP32 core's tools, needed at offset 0xe000
+          BOOT_APP0=$(find "$HOME/.arduino15/packages/esp32" -name "boot_app0.bin" | head -n1)
+
+          for sketch_dir in firmware/*/; do
+            name=$(basename "$sketch_dir")
+            echo "== Building $name =="
+            build_out="build/$name"
+            arduino-cli compile --fqbn "$FQBN" --export-binaries --output-dir "$build_out" "$sketch_dir"
+
+            dest="$OUT_ROOT/$name"
+            mkdir -p "$dest"
+            cp "$build_out"/*.ino.bin            "$dest/firmware.bin"
+            cp "$build_out"/*.ino.bootloader.bin  "$dest/bootloader.bin"
+            cp "$build_out"/*.ino.partitions.bin  "$dest/partitions.bin"
+            cp "$BOOT_APP0" "$dest/boot_app0.bin"
+
+            cat > "$dest/manifest.json" <<EOF
+          {
+            "name": "$name",
+            "version": "$(date -u +%Y.%m.%d)-${GITHUB_SHA::7}",
+            "new_install_prompt_erase": true,
+            "builds": [
+              {
+                "chipFamily": "ESP32",
+                "parts": [
+                  { "path": "bootloader.bin", "offset": 4096 },
+                  { "path": "partitions.bin", "offset": 32768 },
+                  { "path": "boot_app0.bin", "offset": 57344 },
+                  { "path": "firmware.bin", "offset": 65536 }
+                ]
+              }
+            ]
+          }
+          EOF
+          done
+
+      - name: Commit compiled firmware + manifests
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/firmware
+          git diff --cached --quiet || git commit -m "Build firmware manifests [skip ci]"
+          git push

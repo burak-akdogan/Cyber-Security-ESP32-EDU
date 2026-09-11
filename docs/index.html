@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cyber Sec ESP32 — Flash a Lab</title>
+<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js"></script>
+<style>
+  :root{color-scheme:dark}
+  body{background:#0b0f14;color:#d7e2ea;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+       margin:0;padding:32px 16px 64px;max-width:860px;margin-inline:auto}
+  h1{font-size:24px;margin:0 0 6px;color:#8fb3c9}
+  p.lead{color:#9fb2c0;margin:0 0 28px;font-size:14px;line-height:1.5}
+  .req{background:#131a22;border:1px solid #1e2a35;border-radius:10px;padding:14px 18px;margin-bottom:28px;font-size:13px;color:#9fb2c0}
+  .req code{color:#e2e8f0}
+  .card{background:#131a22;border:1px solid #1e2a35;border-radius:12px;padding:18px 20px;margin-bottom:14px;
+        display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .card h2{font-size:16px;margin:0 0 4px;color:#e2e8f0}
+  .card p{margin:0;font-size:13px;color:#8fa3b3;max-width:520px}
+  esp-web-install-button{--esp-tools-button-color:#38bdf8}
+  .warn{margin-top:30px;font-size:12px;color:#f0b429;background:#241d0b;border:1px solid #3a2f10;border-radius:8px;padding:12px 16px}
+  a{color:#38bdf8}
+</style>
+</head>
+<body>
+  <h1>⚡ Cyber Sec ESP32 — Flash a Lab From Your Browser</h1>
+  <p class="lead">
+    Pick a lab below and click <b>Connect</b>. This uses
+    <a href="https://esphome.github.io/esp-web-tools/" target="_blank" rel="noopener">ESP Web Tools</a>
+    to flash a pre-built firmware straight from GitHub to your ESP32 DevKit V1 — no Arduino IDE,
+    no compiling required.
+  </p>
+
+  <div class="req">
+    <b>Before you start:</b> use <b>Chrome or Edge</b> (desktop) — Web Serial isn't supported in Firefox/Safari.
+    Plug in your ESP32 DevKit V1 with a micro-USB <b>data</b> cable, then click Connect and pick the board's
+    serial port. Full lab guides are linked from the <a href="../README.md">main README</a>.
+  </div>
+
+  <div class="card">
+    <div><h2>0 · Evil Twin / Fake Wi-Fi</h2><p>Rogue AP + captive portal phishing awareness demo.</p></div>
+    <esp-web-install-button manifest="firmware/00-evil-twin-wifi/manifest.json"></esp-web-install-button>
+  </div>
+
+  <div class="card">
+    <div><h2>1 · Ghost of Networks Past</h2><p>Passive probe-request "confession wall".</p></div>
+    <esp-web-install-button manifest="firmware/01-ghost-of-networks-past/manifest.json"></esp-web-install-button>
+  </div>
+
+  <div class="card">
+    <div><h2>2 · Deauth Canary</h2><p>Onboard-LED deauth/disassoc attack detector.</p></div>
+    <esp-web-install-button manifest="firmware/02-deauth-canary/manifest.json"></esp-web-install-button>
+  </div>
+
+  <div class="card">
+    <div><h2>3 · Wi-Fi Ghost (motion through walls)</h2><p>RSSI-jitter motion sensor with a live dashboard. Edit the SSID/password in the .ino before flashing.</p></div>
+    <esp-web-install-button manifest="firmware/03-wifi-motion-ghost/manifest.json"></esp-web-install-button>
+  </div>
+
+  <div class="card">
+    <div><h2>4 · Fingerprint Mirror</h2><p>Shows a connecting device its own MAC/vendor/User-Agent fingerprint.</p></div>
+    <esp-web-install-button manifest="firmware/04-fingerprint-mirror/manifest.json"></esp-web-install-button>
+  </div>
+
+  <div class="card">
+    <div><h2>5a · Invisible Ink — Sender</h2><p>Encodes a secret message into rotating SSID broadcasts.</p></div>
+    <esp-web-install-button manifest="firmware/05-invisible-ink-sender/manifest.json"></esp-web-install-button>
+  </div>
+
+  <div class="card">
+    <div><h2>5b · Invisible Ink — Receiver</h2><p>Scans for the hidden SSIDs and reassembles the message.</p></div>
+    <esp-web-install-button manifest="firmware/05-invisible-ink-receiver/manifest.json"></esp-web-install-button>
+  </div>
+
+  <div class="card">
+    <div><h2>6 · Karma (Wi-Fi Pineapple demo)</h2><p>Impersonates trusted SSIDs phones broadcast, one at a time.</p></div>
+    <esp-web-install-button manifest="firmware/06-karma-demo/manifest.json"></esp-web-install-button>
+  </div>
+
+  <div class="card">
+    <div><h2>7 · Realistic Captive Portal Reveal</h2><p>Polished fictional-brand login that flips into an instant "that was fake" reveal.</p></div>
+    <esp-web-install-button manifest="firmware/07-realistic-portal-reveal/manifest.json"></esp-web-install-button>
+  </div>
+
+  <div class="card">
+    <div><h2>8 · Bluetooth Poltergeist</h2><p>Broadcasts rotating fake BLE device names — no pairing, no data.</p></div>
+    <esp-web-install-button manifest="firmware/08-bluetooth-poltergeist/manifest.json"></esp-web-install-button>
+  </div>
+
+  <div class="card">
+    <div><h2>9 · Deauth Storm (self-target)</h2><p>Real deauth frames, hard-locked to its own disposable test AP only.</p></div>
+    <esp-web-install-button manifest="firmware/09-deauth-storm-self-target/manifest.json"></esp-web-install-button>
+  </div>
+
+  <div class="warn">
+    ⚠️ These are consent-based classroom awareness demos. Read each lab's "Ethical and Legal Framework"
+    section before flashing/running it — see the guides linked from the repository README.
+  </div>
+</body>
+</html>

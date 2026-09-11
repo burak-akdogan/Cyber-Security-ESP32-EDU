@@ -7,6 +7,16 @@ A set of **buildable, consent-based** cybersecurity demonstrations for students.
 
 ---
 
+## ⚡ One-click flashing (no Arduino IDE needed)
+
+Every lab's firmware can be flashed straight from a browser using [ESP Web Tools](https://esphome.github.io/esp-web-tools/) — plug in an ESP32 DevKit V1, open the install page (Chrome/Edge only), and click **Connect**.
+
+- Sketch sources: [firmware/](firmware/) (one folder per lab, still fully editable/buildable in Arduino IDE too)
+- Install page: `docs/index.html`, served via GitHub Pages once enabled (Settings → Pages → **Deploy from a branch** → `main` / `/docs`)
+- A GitHub Actions workflow ([.github/workflows/build-firmware.yml](.github/workflows/build-firmware.yml)) auto-compiles every sketch on push and publishes the `.bin` files + ESP Web Tools `manifest.json` for each lab into `docs/firmware/<lab>/`
+
+---
+
 ## 🗂️ Curriculum Framework (for instructors)
 
 Planning a unit around these labs? [CURRICULUM-FRAMEWORK-en.md](CURRICULUM-FRAMEWORK-en.md) sits above the individual lab guides: a master consent/ethics framework, a risk-tier table (which labs reach bystanders or transmit real attack traffic), a standards/domain mapping, a suggested 5-session sequence, one shared assessment rubric, and a pre-lab checklist to run before every session.
