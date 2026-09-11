@@ -1,15 +1,15 @@
 # Curriculum Framework — ESP32 Cybersecurity Awareness Labs
-### For instructors planning a unit around these 10 activities
+### For instructors planning a unit around these 8 activities
 
 > 🚨 **FOR EDUCATIONAL PURPOSES ONLY.** This framework and the labs it organizes are provided solely to teach cybersecurity awareness in a supervised classroom setting, with informed consent from everyone involved. Do not use these techniques against real people, devices, or networks without explicit authorization — doing so may violate computer-misuse, wiretapping, or other laws in your jurisdiction.
 
-Each lab file already carries its own "Ethical and Legal Framework," "Discussion," and "Checklist" sections. This document sits **above** all of them: it's the single framework an instructor uses to plan, sequence, supervise, and assess the whole set as one coherent unit, instead of ten disconnected demos.
+Each lab file already carries its own "Ethical and Legal Framework," "Discussion," and "Checklist" sections. This document sits **above** all of them: it's the single framework an instructor uses to plan, sequence, supervise, and assess the whole set as one coherent unit, instead of eight disconnected demos.
 
 ---
 
 ## 1. Purpose & Scope
 
-Ten hands-on labs, one ESP32 DevKit V1 each, teaching wireless/Bluetooth security concepts by making an invisible attack or leak *visible*, then turning it into a defense discussion. No lab requires internet access to be granted, no lab collects real credentials, and no lab is a "build a tool to use later" exercise — every artifact is disposable and classroom-bound.
+Eight hands-on labs, one ESP32 DevKit V1 each, teaching wireless/Bluetooth security concepts by making an invisible attack or leak *visible*, then turning it into a defense discussion. No lab requires internet access to be granted, no lab collects real credentials, and no lab is a "build a tool to use later" exercise — every artifact is disposable and classroom-bound.
 
 Full lab index: see [README.md](README.md#-the-labs).
 
@@ -21,7 +21,7 @@ Every lab's own framework section is a specific instance of these five rules. Ap
 
 1. **Informed consent, announced out loud, before power-on.** Not a syllabus footnote — say it in the room, every session: what the device will do, whose devices are involved, and what happens to any data collected.
 2. **No real targets, ever.** Every AP created is disposable and grants no internet. Every "attack" (Lab 9) is hard-locked to a device the ESP32 itself created. Nothing in this set may be pointed at the school's production network, a classmate's home network, or any network/device the operator doesn't own or have explicit written permission to test.
-3. **Test data only.** Any lab with a form (Evil Twin, Realistic Portal) is briefed with "test data only" *before* connecting, not after. Real credentials should never reach the log in the first place.
+3. **Test data only.** Any lab with a form (Realistic Portal) is briefed with "test data only" *before* connecting, not after. Real credentials should never reach the log in the first place.
 4. **Passive-observation labs stay anonymous.** Probe/fingerprint data (Labs 1, 3, 4) is shown as a "wall," never attributed to a named student in front of the class.
 5. **Every lab ends on defense, not on the trick.** The closing move is always "here's how you'd have caught or prevented this" — never the exploit itself.
 
@@ -31,12 +31,12 @@ Every lab's own framework section is a specific instance of these five rules. Ap
 
 ## 3. Risk Tiers
 
-Not all ten labs carry the same blast radius. Use this to decide supervision level and whether extra announcements are needed.
+Not all eight labs carry the same blast radius. Use this to decide supervision level and whether extra announcements are needed.
 
 | Tier | Meaning | Labs |
 |---|---|---|
 | **1 — Passive listening** | Reads broadcasts already in the air; never transmits an attack or fake identity | [Ghost of Networks Past (1)](01-ghost-of-networks-past-en.md), [Wi-Fi Ghost (3)](03-wifi-motion-ghost-through-wall-en.md), [Fingerprint Mirror (4)](04-digital-fingerprint-mirror-en.md), [Deauth Canary (2)](02-deauth-canary-wifi-smoke-alarm-en.md) |
-| **2 — Active, opt-in only** | Broadcasts a fake AP/identity, but only affects a device that chooses to connect | [Evil Twin (0)](evil-twin-awareness-guideline-en.md), [Karma (6)](06-karma-wifi-pineapple-explained-en.md), [Realistic Portal (7)](07-realistic-captive-portal-reveal-en.md), [Invisible Ink (5)](05-invisible-ink-ssid-covert-channel-en.md) |
+| **2 — Active, opt-in only** | Broadcasts a fake AP/identity, but only affects a device that chooses to connect | [Realistic Portal (7)](07-realistic-captive-portal-reveal-en.md), [Invisible Ink (5)](05-invisible-ink-ssid-covert-channel-en.md) |
 | **3 — Active, reaches bystanders** | Broadcast is visible to *every* nearby device, not just consenting ones | [Bluetooth Poltergeist (8)](08-bluetooth-poltergeist-ble-spam-en.md) |
 | **4 — Real attack traffic** | Transmits genuine unauthenticated attack frames; hard-locked to a self-created target | [Deauth Storm (9)](09-deauth-storm-self-target-en.md) |
 
@@ -48,18 +48,16 @@ Not all ten labs carry the same blast radius. Use this to decide supervision lev
 
 | # | Lab | Domain(s) | Core Concept | Risk Tier |
 |---|---|---|---|---|
-| 0 | Evil Twin | Social Engineering, Network Security | Rogue AP & captive portal phishing | 2 |
 | 1 | Ghost of Networks Past | Privacy, Wireless Security | Probe-request metadata leak | 1 |
 | 2 | Deauth Canary | Blue Team / Detection | Building the defender, not the attacker | 1 |
 | 3 | Wi-Fi Ghost | Privacy, RF/Side-channel | RSSI-based presence sensing | 1 |
 | 4 | Fingerprint Mirror | Privacy, Network Security | Device fingerprinting & MAC tracking | 1 |
 | 5 | Invisible Ink | Network Security (advanced) | Covert channels & air-gap myths | 2 |
-| 6 | Karma | Social Engineering, Network Security | Auto-connect / Wi-Fi Pineapple mechanics | 2 |
 | 7 | Realistic Portal | Social Engineering | Why "professional-looking" ≠ safe | 2 |
 | 8 | Bluetooth Poltergeist | Wireless Security (BLE) | Unauthenticated advertising / identity spoofing | 3 |
 | 9 | Deauth Storm | Network Security, Blue Team / Detection | Real attack frames, paired with Lab 2's detector | 4 |
 
-Use this table to pull a subset if your course only has room for one unit (e.g. "Social Engineering" → Labs 0, 6, 7; "Blue Team" → Labs 2 + 9 as a pair).
+Use this table to pull a subset if your course only has room for one unit (e.g. "Social Engineering" → Lab 7; "Blue Team" → Labs 2 + 9 as a pair).
 
 ---
 
@@ -68,8 +66,8 @@ Use this table to pull a subset if your course only has room for one unit (e.g. 
 | Session | Labs | Why this order |
 |---|---|---|
 | 1 — Hook | Fingerprint Mirror (4) → Ghost of Networks Past (1) | Zero setup friction, biggest "it already knows this?" reaction, establishes passive-leak intuition |
-| 2 — Social engineering | Evil Twin (0) → Realistic Portal (7) | Builds from a plain fake login to a polished one; the reveal in (7) lands harder once (0) set the baseline |
-| 3 — Wireless mechanics | Karma (6) → Wi-Fi Ghost (3) | (6) is the natural sequel to session 1's leak; (3) shifts the register toward "radio reveals more than you think" |
+| 2 — Social engineering | Realistic Portal (7) | A convincing fake login followed by an instant reveal — short session, pair it with the discussion questions to fill the period |
+| 3 — Wireless mechanics | Wi-Fi Ghost (3) | Shifts the register toward "radio reveals more than you think" — a short session, pair it with early setup/discussion time |
 | 4 — Attack & defense pair | Deauth Canary (2) *then* Deauth Storm (9), same class period | Build the detector first so students understand *why* it works before they watch it fire against a real burst |
 | 5 — Wrap-up / advanced | Bluetooth Poltergeist (8) → Invisible Ink (5) → synthesis discussion | (8) needs a room-wide heads-up, so save it for a session where that's already the norm; (5) is the most abstract, good closer before the final discussion |
 
@@ -79,7 +77,7 @@ Adjust freely — the only hard constraint is **Canary (2) before Storm (9)**, s
 
 ## 6. Master Assessment Rubric
 
-Use across every lab instead of writing ten separate rubrics. Score each row 1–4 (Emerging / Developing / Proficient / Advanced).
+Use across every lab instead of writing eight separate rubrics. Score each row 1–4 (Emerging / Developing / Proficient / Advanced).
 
 | Criterion | Emerging (1) | Developing (2) | Proficient (3) | Advanced (4) |
 |---|---|---|---|---|

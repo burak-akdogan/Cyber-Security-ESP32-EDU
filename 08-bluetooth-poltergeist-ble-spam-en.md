@@ -117,7 +117,7 @@ void loop() {
 - "The name said 'AirPods Pro' — was there any proof, or was it just a broadcast trusting itself?"
 - "If a smart lock or medical device advertises a friendly, guessable name, what could a stranger learn or spoof?"
 - "Real-world attacks push this further into forced pairing popups on people's actual phones — why does even a 'harmless-looking' notification deserve suspicion?"
-- "How is broadcasting a fake Bluetooth name similar to (and different from) the Evil Twin fake Wi-Fi network from Lab 0?"
+- "How is broadcasting a fake Bluetooth name similar to (and different from) the fake Wi-Fi network from the Realistic Captive Portal lab (7)?"
 
 ---
 

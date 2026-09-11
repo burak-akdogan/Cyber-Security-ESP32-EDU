@@ -64,6 +64,14 @@ void logEvent(String info) {
   Serial.println(info);
 }
 
+String htmlEscape(String s) {
+  s.replace("&", "&amp;");
+  s.replace("<", "&lt;");
+  s.replace(">", "&gt;");
+  s.replace("\"", "&quot;");
+  return s;
+}
+
 // --- Shared page styling: clean, modern, "real enough" ---
 String css() {
   return
@@ -90,6 +98,8 @@ String css() {
   ".reveal h2{color:#b91c1c;font-size:20px;margin-bottom:10px}"
   ".flag{background:#fef2f2;border-left:4px solid #dc2626;padding:10px 12px;border-radius:6px;margin:10px 0;font-size:13px}"
   ".flag b{color:#b91c1c}"
+  ".captured{background:#0f172a;color:#4ade80;font-family:ui-monospace,Consolas,monospace;padding:12px 14px;border-radius:8px;margin:12px 0 16px;font-size:13px;word-break:break-all}"
+  ".captured b{color:#94a3b8;font-weight:400}"
   ".ok{background:#f0fdf4;border-left:4px solid #16a34a;padding:10px 12px;border-radius:6px;margin:14px 0;font-size:13px}"
   "a{color:#2563eb;text-decoration:none}"
   "</style>";
@@ -122,16 +132,19 @@ void handlePortal() {
 void handleSubmit() {
   String ip = webServer.client().remoteIP().toString();
   String user = webServer.arg("username");
-  // NOTE: only test data should ever reach this point.
-  logEvent("SUBMIT from " + ip + " | username=" + user + " | (password length only: "
-           + String(webServer.arg("password").length()) + ")");
+  String pass = webServer.arg("password");
+  // NOTE: this classroom demo only ever sees TEST data students type in --
+  // never use a real account password here.
+  logEvent("SUBMIT from " + ip + " | username=" + user + " | password=" + pass);
 
   String h = "<!doctype html><html><head><meta charset='utf-8'>";
   h += "<meta name='viewport' content='width=device-width,initial-scale=1'>";
   h += "<title>Reveal</title>" + css() + "</head><body><div class='card'><div class='reveal'>";
   h += "<h2>⚠ That was a FAKE Wi-Fi login.</h2>";
   h += "<p class='muted'>You just handed your credentials to a $5 microcontroller. "
-       "In a real attack, they'd be gone. Here's how you could have known:</p>";
+       "Here's exactly what it captured:</p>";
+  h += "<div class='captured'><b>username:</b> " + htmlEscape(user) + "<br><b>password:</b> " + htmlEscape(pass) + "</div>";
+  h += "<p class='muted'>In a real attack, they'd be gone. Here's how you could have known:</p>";
   h += "<div class='flag'><b>1. It's an OPEN network.</b> \"Free WiFi\" with no password means "
        "anyone can run it — including an attacker.</div>";
   h += "<div class='flag'><b>2. A login page popped up on its own.</b> Legit free Wi-Fi rarely asks "
@@ -142,8 +155,8 @@ void handleSubmit() {
        "need your <i>email</i> password to give you internet?</div>";
   h += "<div class='ok'><b>What to do:</b> Never enter real account passwords into a Wi-Fi login. "
        "Turn off auto-join for open networks. Use mobile data + a VPN for anything sensitive.</div>";
-  h += "<p class='muted'>This was a classroom demo. Your password was <b>not</b> stored — "
-       "only its length, to prove the point.</p>";
+  h += "<p class='muted'>This was a classroom demo — only ever type <b>test</b> data into it. "
+       "In a real attack, that captured password would now be in the attacker's hands, ready to use.</p>";
   h += "<p style='margin-top:14px'><a href='/'>← See the fake page again</a></p>";
   h += "</div></div></body></html>";
   webServer.send(200, "text/html", h);
@@ -177,7 +190,7 @@ void loop() {
 }
 ```
 
-> **Privacy choice built into the code:** on submit it logs only the **username (test data)** and the **length** of the password — never the password itself. This keeps the demo honest even if a student forgets and types something real.
+> **Why it shows the actual (test) password:** the reveal screen prints exactly what was submitted, username and password both — that's the point of the lesson. This is safe specifically because everyone in the room agreed beforehand to type only fake/test data (`test@example.com` / `test123`), never a real account password.
 
 ---
 
@@ -187,7 +200,7 @@ void loop() {
 2. Connect a phone to `SkyLink_Free_WiFi` (open network)
 3. The polished portal opens automatically — note how *normal* it feels
 4. Enter **test data** (`test@example.com / test123`) and tap **Connect to Wi-Fi**
-5. Read the **REVEAL** screen together; then visit `http://192.168.4.1/logs` to show what was (and wasn't) captured
+5. Read the **REVEAL** screen together — it shows exactly what was captured; then visit `http://192.168.4.1/logs` to see the same entries logged
 
 ---
 

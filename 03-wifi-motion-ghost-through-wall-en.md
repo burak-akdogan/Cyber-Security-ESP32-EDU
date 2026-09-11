@@ -49,22 +49,13 @@ Uses:
 ```cpp
 // wifi_motion_ghost.ino
 // Detects human motion via Wi-Fi RSSI variance, then hosts a live dashboard
-// (status + jitter chart). On boot it opens its own "WiFiGhost-Setup" network
-// so a student can type in the real Wi-Fi name/password from a phone or
-// laptop -- no code editing, no Arduino IDE, no recompiling required.
+// (status + jitter chart). It waits for Wi-Fi credentials sent over the same
+// USB/Serial cable used to flash it -- no phone, no second network to join.
 
 #include <WiFi.h>
 #include <WebServer.h>
-#include <DNSServer.h>
 
-const char* SETUP_SSID = "WiFiGhost-Setup"; // temporary open AP used only to collect Wi-Fi credentials
-DNSServer dnsServer;
-WebServer server(80);
-const byte DNS_PORT = 53;
-IPAddress apIP(192, 168, 4, 1);
-
-bool provisioned = false;  // true once connected to the student's real Wi-Fi
-bool connectNow = false;   // set right after the setup form is submitted
+bool provisioned = false; // true once connected to the student's real Wi-Fi
 String targetSsid, targetPass;
 
 #define SAMPLES 20
@@ -86,52 +77,14 @@ bool motionNow = false;
 float jitterHistory[HISTORY_LEN];
 int histIdx = 0;
 
+WebServer server(80);
+
 float stdevOf(int* buf, int n) {
   float mean = 0; for (int i = 0; i < n; i++) mean += buf[i]; mean /= n;
   float var = 0;  for (int i = 0; i < n; i++) var += (buf[i]-mean)*(buf[i]-mean);
   return sqrt(var / n);
 }
 
-// --- Step 1: setup page that asks for the Wi-Fi to point at ---
-const char SETUP_HTML[] PROGMEM = R"HTML(
-<!DOCTYPE html><html><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Wi-Fi Ghost Setup</title>
-<style>
-  body{background:#0b0f14;color:#d7e2ea;font-family:system-ui,sans-serif;margin:0;padding:28px 20px;max-width:420px}
-  h1{font-size:19px;color:#8fb3c9;margin:0 0 8px}
-  p{font-size:13px;color:#9fb2c0;line-height:1.5}
-  label{display:block;font-size:12px;color:#9fb2c0;margin:16px 0 4px}
-  input{width:100%;padding:11px;border-radius:8px;border:1px solid #24313d;background:#131a22;color:#e2e8f0;font-size:15px;box-sizing:border-box}
-  button{width:100%;margin-top:18px;padding:12px;border:0;border-radius:8px;background:#38bdf8;color:#04121a;font-weight:700;font-size:15px}
-</style></head><body>
-  <h1>Wi-Fi Ghost Setup</h1>
-  <p>Point this board at a Wi-Fi network you're allowed to measure against (e.g. your classroom router). The password is only used to connect this ESP32 to that network -- it is never sent anywhere else.</p>
-  <form action="/connect" method="POST">
-    <label>Wi-Fi network name (SSID)</label>
-    <input type="text" name="ssid" required autofocus>
-    <label>Password</label>
-    <input type="password" name="password">
-    <button type="submit">Connect</button>
-  </form>
-</body></html>
-)HTML";
-
-void handleSetupRoot() {
-  server.send_P(200, "text/html", SETUP_HTML);
-}
-
-void handleConnect() {
-  targetSsid = server.arg("ssid");
-  targetPass = server.arg("password");
-  server.send(200, "text/html",
-    "<body style='background:#0b0f14;color:#d7e2ea;font-family:sans-serif;padding:30px'>"
-    "<h2>Connecting...</h2><p>Rejoin your normal Wi-Fi, then check this board's "
-    "Console/Serial output for the dashboard address.</p></body>");
-  connectNow = true; // do the actual switchover in loop(), after this response is sent
-}
-
-// --- Step 2: the live dashboard, once connected ---
 const char PAGE_HTML[] PROGMEM = R"HTML(
 <!DOCTYPE html><html><head><meta charset="utf-8">
 <title>Wi-Fi Ghost Dashboard</title>
@@ -211,23 +164,9 @@ void handleData() {
   server.send(200, "application/json", json);
 }
 
-void startSetupPortal() {
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP(SETUP_SSID);
-  dnsServer.start(DNS_PORT, "*", apIP);
-  server.onNotFound(handleSetupRoot);
-  server.on("/", handleSetupRoot);
-  server.on("/connect", HTTP_POST, handleConnect);
-  server.begin();
-  Serial.println("\n=== Wi-Fi Ghost: setup mode ===");
-  Serial.printf("Join Wi-Fi \"%s\" (open network) from a phone or laptop, then open http://192.168.4.1\n", SETUP_SSID);
-}
-
 void connectToTarget() {
-  dnsServer.stop();
-  WiFi.softAPdisconnect(true);
-  WiFi.mode(WIFI_STA);
   Serial.printf("\nConnecting to \"%s\" ...\n", targetSsid.c_str());
+  WiFi.mode(WIFI_STA);
   WiFi.begin(targetSsid.c_str(), targetPass.c_str());
 
   unsigned long start = millis();
@@ -237,15 +176,13 @@ void connectToTarget() {
   }
 
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("\nCouldn't connect -- check the network name/password and try again.");
-    startSetupPortal(); // fall back to setup mode so the student can retry
+    Serial.println("\nCouldn't connect -- check the network name/password and send it again.");
     return;
   }
 
   Serial.printf("\nConnected. Dashboard: http://%s\n", WiFi.localIP().toString().c_str());
   Serial.println("Keep the room STILL for a few seconds while it calibrates...");
 
-  server.onNotFound(handleRoot);
   server.on("/", handleRoot);
   server.on("/data", handleData);
   server.begin();
@@ -254,20 +191,27 @@ void connectToTarget() {
 
 void setup() {
   Serial.begin(115200);
-  startSetupPortal();
+  delay(300);
+  Serial.println("\n=== Wi-Fi Ghost ===");
+  Serial.println("Waiting for Wi-Fi credentials -- use the \"Send to Board\" form on the flashing page.");
+  Serial.println("(Typing by hand also works: send \"SSID,PASSWORD\" then Enter.)");
 }
 
 void loop() {
-  if (connectNow) {
-    connectNow = false;
-    connectToTarget();
-    return;
+  if (!provisioned && Serial.available()) {
+    String line = Serial.readStringUntil('\n');
+    line.trim();
+    int comma = line.indexOf(',');
+    if (comma > 0) {
+      targetSsid = line.substring(0, comma);
+      targetPass = line.substring(comma + 1);
+      connectToTarget();
+    }
   }
 
-  if (!provisioned) dnsServer.processNextRequest();
-  server.handleClient();
+  if (!provisioned) return; // still waiting for Wi-Fi credentials over Serial
 
-  if (!provisioned) return; // still waiting for the student to submit Wi-Fi credentials
+  server.handleClient();
 
   if (WiFi.status() != WL_CONNECTED) { WiFi.reconnect(); delay(500); return; }
 
@@ -319,9 +263,8 @@ The dashboard needs no extra hardware: `WebServer.h` is part of the ESP32 core, 
 ## 4. Setup and Test Steps
 
 1. Flash the board (Arduino IDE or the one-click browser installer) and open the Serial Monitor / Console at 115200 baud
-2. On a phone or laptop, join the board's own temporary Wi-Fi network **"WiFiGhost-Setup"** (open, no password)
-3. A setup page should open automatically (or open `http://192.168.4.1` yourself) — type in the SSID and password of a router you're allowed to measure against and tap Connect
-4. Rejoin your normal Wi-Fi, then check the Serial Monitor / Console — once connected it prints a line like `Dashboard: http://192.168.1.42` — open that address in a browser on any device on the same network
+2. Send the SSID/password of a router you're allowed to measure against over the same Serial connection — the one-click flashing page has a "Send to Board" form for this; by hand, just type `SSID,PASSWORD` and press Enter
+3. Once connected, the Serial Monitor / Console prints a line like `Dashboard: http://192.168.1.42` — open that address in a browser on any device on the same network
 4. **Stay still** during calibration (a few seconds) — it learns the quiet baseline
 5. Then wave your arm, walk across the room, or have someone walk on the *other side of a wall*
 6. Watch the dashboard flip between the green **STILL** banner and the red, blinking **MOTION DETECTED** banner, and watch the jitter line cross the orange threshold line on the chart — or, if you prefer, watch the readout flip between `[ still ]` and `[MOTION]` in the Serial Monitor

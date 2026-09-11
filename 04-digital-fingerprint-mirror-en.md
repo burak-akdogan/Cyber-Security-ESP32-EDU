@@ -33,7 +33,7 @@ Uses (bundled):
 
 ## 2. How It Works (Conceptual Overview)
 
-1. The ESP32 runs an open AP + captive portal (like the evil-twin demo) but with **no login form**
+1. The ESP32 runs an open AP + captive portal (like the Realistic Captive Portal demo) but with **no login form**
 2. When a device connects, the OS auto-opens the portal page
 3. The page reports back to the user:
    - **MAC address** and the **vendor** decoded from its first 3 bytes (OUI)

@@ -36,7 +36,7 @@ void setup() {
   Serial.begin(115200);
   delay(300);
   WiFi.mode(WIFI_AP);
-  WiFi.softAP(ap_ssid); // open network, no internet — same pattern as the Evil Twin lab
+  WiFi.softAP(ap_ssid); // open network, no internet — same pattern as the other open-AP labs
 
   uint8_t apMac[6];
   esp_wifi_get_mac(WIFI_IF_AP, apMac);

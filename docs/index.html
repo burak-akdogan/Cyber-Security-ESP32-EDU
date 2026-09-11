@@ -343,11 +343,29 @@
 
   .lab-modal-desc{ color:var(--ink-dim); font-size:13px; line-height:1.6; margin:14px 0 18px }
 
-  .wifi-note{
-    display:flex; gap:10px; align-items:flex-start;
-    margin:0 0 18px; padding:12px 14px; border-radius:10px;
-    border:1px solid rgba(252,211,77,.3); background:rgba(252,211,77,.07);
-    font-size:12.5px; color:#fde68a; line-height:1.5;
+  .wifi-form{
+    margin:4px 0 6px; padding:14px 16px; border-radius:12px;
+    border:1px solid rgba(252,211,77,.3); background:rgba(252,211,77,.06);
+  }
+  .wifi-form-title{ font-size:12.5px; font-weight:600; color:#fde68a; margin-bottom:10px }
+  .wifi-form input{
+    display:block; width:100%; margin-bottom:8px; padding:10px 12px;
+    border-radius:8px; border:1px solid var(--panel-border);
+    background:rgba(5,7,10,.5); color:var(--ink);
+    font-family:var(--sans); font-size:13px; box-sizing:border-box;
+  }
+  .wifi-form input:focus{ outline:none; border-color:var(--accent) }
+  .wifi-send-btn{
+    width:100%; padding:10px; border-radius:8px; border:none;
+    background:linear-gradient(135deg, var(--accent), var(--accent-2));
+    color:#04121a; font-weight:600; font-size:13px; cursor:pointer;
+  }
+  .wifi-form-status{ margin:8px 0 0; font-size:12px; color:var(--ink-dim); line-height:1.5 }
+  .wifi-console{
+    margin:10px 0 0; padding:10px 12px; border-radius:8px;
+    background:#05070a; border:1px solid var(--panel-border);
+    color:#9ae6b4; font-family:var(--mono); font-size:11px; line-height:1.5;
+    max-height:180px; overflow-y:auto; white-space:pre-wrap; word-break:break-word;
   }
 
   .lab-steps{ margin:0 0 22px; padding:0; list-style:none; counter-reset:step }
@@ -430,7 +448,7 @@
       <a href="https://github.com/burak-akdogan/Cyber-Security-ESP32-EDU#readme" target="_blank" rel="noopener">main README</a>.
     </div>
 
-    <p class="section-label">// 10 labs</p>
+    <p class="section-label">// 8 labs</p>
 
     <div class="grid" id="labGrid"></div>
 
@@ -580,27 +598,20 @@
       </div>
     </div>
     <p class="lab-modal-desc" id="labModalDesc"></p>
-    <div class="wifi-note" id="labModalWifiNote" hidden>
-      <span>📶</span>
-      <span>This lab will ask you to type in a real Wi-Fi network name and password on a page that appears after flashing.</span>
-    </div>
     <ol class="lab-steps" id="labModalSteps"></ol>
     <div class="lab-install" id="labModalInstall"></div>
+    <div class="wifi-form" id="labModalWifiForm" hidden>
+      <div class="wifi-form-title">📶 Send Wi-Fi credentials to the board</div>
+      <input type="text" id="wifiSsidInput" placeholder="Wi-Fi network name (SSID)" autocomplete="off">
+      <input type="password" id="wifiPassInput" placeholder="Password" autocomplete="off">
+      <button type="button" class="wifi-send-btn" id="wifiSendBtn">Send to Board</button>
+      <p class="wifi-form-status" id="wifiFormStatus"></p>
+      <pre class="wifi-console" id="wifiConsole" hidden></pre>
+    </div>
   </aside>
 
   <script>
   var LABS = [
-    {
-      icon: "🎭", tag: "easy", title: "0 · Evil Twin / Fake Wi-Fi",
-      desc: "Rogue AP + captive portal phishing awareness demo.",
-      manifest: "firmware/00-evil-twin-wifi/manifest.json", needsWifi: false,
-      steps: [
-        "Click Install below and flash the board.",
-        "On a phone, join the open Wi-Fi network <code>Free_School_WiFi</code>.",
-        "A login page should pop up automatically. If it doesn't, open a browser and visit any http:// address.",
-        "Come back here and open Console/Logs — you'll see the page view and whatever (fake!) username/password get typed."
-      ]
-    },
     {
       icon: "👻", tag: "easy", title: "1 · Ghost of Networks Past",
       desc: "Passive probe-request \"confession wall\".",
@@ -624,12 +635,11 @@
     {
       icon: "📡", tag: "medium", title: "3 · Wi-Fi Ghost (motion through walls)",
       desc: "RSSI-jitter motion sensor with a live dashboard.",
-      manifest: "firmware/03-wifi-motion-ghost/manifest.json", needsWifi: true,
+      manifest: "firmware/03-wifi-motion-ghost/manifest.json", wifiForm: true,
       steps: [
         "Click Install below and flash the board.",
-        "Join the board's own open Wi-Fi network <code>WiFiGhost-Setup</code> from a phone or laptop.",
-        "A setup page opens automatically asking for your classroom Wi-Fi name and password — type them in and tap Connect.",
-        "Rejoin your normal Wi-Fi, then open Console here — it prints the dashboard address (e.g. <code>http://192.168.1.42</code>). Open that in a browser.",
+        "Type your classroom Wi-Fi name and password below and click \"Send to Board\" — sent straight over the same USB cable, no phone needed.",
+        "Open Console here — it prints the dashboard address (e.g. <code>http://192.168.1.42</code>). Open that in a browser.",
         "Stay still for a few seconds while it calibrates, then move — watch the dashboard flip to MOTION DETECTED."
       ]
     },
@@ -665,24 +675,14 @@
       ]
     },
     {
-      icon: "🍍", tag: "medium", title: "6 · Karma (Wi-Fi Pineapple demo)",
-      desc: "Impersonates trusted SSIDs phones broadcast, one at a time.",
-      manifest: "firmware/06-karma-demo/manifest.json", needsWifi: false,
-      steps: [
-        "Click Install below and flash the board.",
-        "Open Console — it listens for phones nearby announcing networks they trust, printing a heartbeat while it waits.",
-        "Once it hears one, it starts impersonating it and prints when a phone auto-connects. Modern locked phones may never announce anything — that's expected and is the lesson."
-      ]
-    },
-    {
       icon: "🎣", tag: "easy", title: "7 · Realistic Captive Portal Reveal",
       desc: "Polished fictional-brand login that flips into an instant \"that was fake\" reveal.",
       manifest: "firmware/07-realistic-portal-reveal/manifest.json", needsWifi: false,
       steps: [
         "Click Install below and flash the board.",
         "Join the open Wi-Fi network <code>SkyLink_Free_WiFi</code> from a phone — a polished fake login page should pop up automatically.",
-        "Type in TEST data only, submit, and watch it flip into the \"that was fake\" reveal page.",
-        "Open Console here to see the same page-view and submit events logged live."
+        "Type in TEST data only (never a real password), submit, and watch it flip into the \"that was fake\" reveal page — which shows exactly what you just typed.",
+        "Open Console here to see the same page-view and submit events (including the typed username/password) logged live."
       ]
     },
     {
@@ -769,28 +769,112 @@
     var titleEl = document.getElementById('labModalTitle');
     var tagEl = document.getElementById('labModalTag');
     var descEl = document.getElementById('labModalDesc');
-    var wifiNote = document.getElementById('labModalWifiNote');
     var stepsEl = document.getElementById('labModalSteps');
     var installEl = document.getElementById('labModalInstall');
+    var wifiForm = document.getElementById('labModalWifiForm');
+    var wifiSsidInput = document.getElementById('wifiSsidInput');
+    var wifiPassInput = document.getElementById('wifiPassInput');
+    var wifiSendBtn = document.getElementById('wifiSendBtn');
+    var wifiFormStatus = document.getElementById('wifiFormStatus');
+    var wifiConsole = document.getElementById('wifiConsole');
+
+    // The port opened to send Wi-Fi credentials is kept open afterwards so
+    // its replies can be streamed straight into wifiConsole below the form --
+    // no need to separately reopen Logs/Console to see the board connect.
+    var activeWifiPort = null;
+    var activeWifiReader = null;
+
+    async function closeWifiSerial(){
+      if (activeWifiReader) {
+        try { await activeWifiReader.cancel(); } catch (e) {}
+        activeWifiReader = null;
+      }
+      if (activeWifiPort) {
+        try { await activeWifiPort.close(); } catch (e) {}
+        activeWifiPort = null;
+      }
+    }
 
     function openLab(lab){
+      closeWifiSerial();
+
       icon.textContent = lab.icon;
       titleEl.textContent = lab.title;
       tagEl.textContent = lab.tag === 'easy' ? 'Easy' : 'Medium';
       tagEl.className = 'tag ' + lab.tag;
       descEl.textContent = lab.desc;
-      wifiNote.hidden = !lab.needsWifi;
       stepsEl.innerHTML = lab.steps.map(function(s){ return '<li>' + s + '</li>'; }).join('');
       installEl.innerHTML = '';
       var btn = document.createElement('esp-web-install-button');
       btn.setAttribute('manifest', lab.manifest);
       installEl.appendChild(btn);
 
+      wifiForm.hidden = !lab.wifiForm;
+      wifiSsidInput.value = '';
+      wifiPassInput.value = '';
+      wifiFormStatus.textContent = '';
+      wifiConsole.hidden = true;
+      wifiConsole.textContent = '';
+
       overlay.classList.add('open');
     }
 
+    // Sends Wi-Fi credentials straight over the same USB/serial connection
+    // used to flash the board -- no phone, no second network to join --
+    // then keeps listening and prints what the board says back.
+    async function sendWifiOverSerial(){
+      var ssid = wifiSsidInput.value.trim();
+      var pass = wifiPassInput.value;
+      if (!ssid) { wifiFormStatus.textContent = 'Type a Wi-Fi network name first.'; return; }
+      if (!('serial' in navigator)) {
+        wifiFormStatus.textContent = "This browser doesn't support Web Serial — use Chrome or Edge.";
+        return;
+      }
+      await closeWifiSerial();
+      wifiSendBtn.disabled = true;
+      try {
+        wifiFormStatus.textContent = "Pick the board's serial port...";
+        var port = await navigator.serial.requestPort();
+        await port.open({ baudRate: 115200 });
+        activeWifiPort = port;
+        // Opening the port resets most ESP32 boards (DTR/RTS auto-reset) --
+        // give it a moment to reboot back into the sketch before writing.
+        wifiFormStatus.textContent = 'Connected — waiting for the board to be ready...';
+        await new Promise(function(r){ setTimeout(r, 2000); });
+        var writer = port.writable.getWriter();
+        await writer.write(new TextEncoder().encode(ssid + ',' + pass + '\n'));
+        writer.releaseLock();
+        wifiFormStatus.textContent = 'Sent! Watching for the board\'s reply below:';
+
+        wifiConsole.hidden = false;
+        wifiConsole.textContent = '';
+        var reader = port.readable.getReader();
+        activeWifiReader = reader;
+        var decoder = new TextDecoder();
+        (async function readLoop(){
+          try {
+            while (true) {
+              var res = await reader.read();
+              if (res.done) break;
+              wifiConsole.textContent += decoder.decode(res.value);
+              wifiConsole.scrollTop = wifiConsole.scrollHeight;
+            }
+          } catch (e) {
+            // port closed/disconnected -- nothing to do
+          }
+        })();
+      } catch (e) {
+        wifiFormStatus.textContent = 'Could not send: ' + e.message;
+      } finally {
+        wifiSendBtn.disabled = false;
+      }
+    }
+
+    wifiSendBtn.addEventListener('click', sendWifiOverSerial);
+
     function closeLab(){
       overlay.classList.remove('open');
+      closeWifiSerial();
     }
 
     document.getElementById('labGrid').addEventListener('click', function(e){

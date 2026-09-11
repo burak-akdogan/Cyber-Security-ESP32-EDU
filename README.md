@@ -40,13 +40,11 @@ All libraries used ship with the ESP32 Arduino core (`WiFi.h`, `esp_wifi.h`, `We
 
 | # | Lab | What students witness | Core concept |
 |---|---|---|---|
-| 0 | [Evil Twin / Fake Wi-Fi](evil-twin-awareness-guideline-en.md) | A fake "Free WiFi" + login page logs whatever they type | Rogue AP & captive portal phishing |
 | 1 | [Ghost of Networks Past](01-ghost-of-networks-past-en.md) | Phones broadcasting the names of every network they remember | Probe-request location-history leak |
 | 2 | [The Deauth Canary](02-deauth-canary-wifi-smoke-alarm-en.md) | An LED alarm that fires when a deauth attack happens nearby | Building the **defender**, not the attacker |
 | 3 | [The Wi-Fi Ghost](03-wifi-motion-ghost-through-wall-en.md) | Human motion detected through a wall — no camera | RSSI/radio-based presence sensing |
 | 4 | [The Fingerprint Mirror](04-digital-fingerprint-mirror-en.md) | Everything a network learns about your phone with zero typing | Device fingerprinting & MAC tracking |
 | 5 | [Invisible Ink](05-invisible-ink-ssid-covert-channel-en.md) | A secret message crossing with no network connection | Covert channels & air-gap myths |
-| 6 | [The $100 Trick (Karma)](06-karma-wifi-pineapple-explained-en.md) | A phone auto-connecting to a fake AP no one tapped | How a Wi-Fi Pineapple really works |
 | 7 | [It Looked So Real](07-realistic-captive-portal-reveal-en.md) | A polished fake login, then an instant "that was fake" reveal | Why "professional-looking" ≠ safe |
 | 8 | [The Bluetooth Poltergeist](08-bluetooth-poltergeist-ble-spam-en.md) | Phantom "AirPods Pro" / "Smart Lock" devices appearing on a live scanner | Unauthenticated BLE advertising |
 | 9 | [The Deauth Storm](09-deauth-storm-self-target-en.md) | A phone repeatedly kicked off Wi-Fi — then caught live by the Lab 2 Canary | The real attack behind Lab 2, self-contained and safe |
@@ -59,10 +57,9 @@ All libraries used ship with the ESP32 Arduino core (`WiFi.h`, `esp_wifi.h`, `We
 
 1. **[Fingerprint Mirror](04-digital-fingerprint-mirror-en.md)** — flash it, connect a phone, instant "it already knows all this?" moment.
 2. **[Ghost of Networks Past](01-ghost-of-networks-past-en.md)** — flash it, watch the Serial Monitor fill with places phones have been.
-3. **[The $100 Trick (Karma)](06-karma-wifi-pineapple-explained-en.md)** — the natural sequel: the network *answers* those leaks and the phone auto-connects.
 
 **Then, by theme:**
-- *Attacker's view:* Evil Twin (0) → Karma (6)
+- *Attacker's view:* Realistic Captive Portal (7)
 - *Privacy leaks:* Ghost (1) → Fingerprint Mirror (4) → Wi-Fi Ghost (3)
 - *Defender's mindset:* Deauth Canary (2) → **Deauth Storm (9)** — run them side by side to watch the detector catch the attack it was built for
 - *Bluetooth:* Bluetooth Poltergeist (8) — a short, one-way BLE broadcast demo; run it last and briefly, since it's the only lab visible to *every* nearby phone, not just consenting ones
@@ -73,14 +70,12 @@ All libraries used ship with the ESP32 Arduino core (`WiFi.h`, `esp_wifi.h`, `We
 
 | Lab | Build effort | Special notes |
 |---|---|---|
-| 0 · Evil Twin | Easy | SPIFFS logging built in |
 | 1 · Ghost | Easy | Promiscuous mode; results best with older/unlocked phones |
 | 2 · Deauth Canary | Easy | Uses onboard LED (GPIO 2); lower threshold to test safely |
 | 3 · Wi-Fi Ghost | Medium | Needs a router **you control** to measure against |
 | 4 · Fingerprint Mirror | Easy | Captive portal; no login form |
 | 5 · Invisible Ink | Medium | Best with 2 boards; **phone-only** fallback works with one |
-| 6 · Karma | Medium | Most reliable against **open** saved networks; WPA2 resists (that's the lesson) |
-| 7 · Realistic Portal | Easy | Fictional brand only; logs password **length**, never the password |
+| 7 · Realistic Portal | Easy | Fictional brand only; reveal screen shows exactly what was typed — **test data only** |
 | 8 · Bluetooth Poltergeist | Easy | BLE only, no Wi-Fi involved; broadcasts to *every* nearby phone — keep it brief |
 | 9 · Deauth Storm | Medium | Transmits real deauth frames; hard-locked to its own test AP — pairs well with a second board running Lab 2 |
 
