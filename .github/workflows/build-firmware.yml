@@ -16,6 +16,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: build-firmware-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -78,8 +82,24 @@ jobs:
 
       - name: Commit compiled firmware + manifests
         run: |
+          set -e
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/firmware
-          git diff --cached --quiet || git commit -m "Build firmware manifests [skip ci]"
-          git push
+          if git diff --cached --quiet; then
+            echo "No firmware changes to commit"
+            exit 0
+          fi
+          git commit -m "Build firmware manifests [skip ci]"
+
+          for i in 1 2 3 4 5; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push rejected (remote moved on) — rebasing onto origin/main and retrying ($i/5)"
+            git fetch origin main
+            git rebase origin/main
+            sleep $((RANDOM % 5 + 1))
+          done
+          echo "Failed to push after retries" >&2
+          exit 1
