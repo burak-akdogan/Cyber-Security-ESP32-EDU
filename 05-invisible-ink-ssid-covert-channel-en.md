@@ -1,6 +1,8 @@
 # "Invisible Ink" — Smuggling Secrets Through Wi-Fi Network Names
 ### (Two ESP32 DevKit V1 boards — sender + receiver)
 
+> 🚨 **FOR EDUCATIONAL PURPOSES ONLY.** This lab is provided solely to teach cybersecurity awareness in a supervised classroom setting, with informed consent from everyone involved. Do not use these techniques against real people, devices, or networks without explicit authorization — doing so may violate computer-misuse, wiretapping, or other laws in your jurisdiction.
+
 **The mind-bending idea:** data can escape a locked-down network *without any network connection at all.* This project turns Wi-Fi **SSIDs (network names)** into a secret messaging channel. One ESP32 encodes a message into a series of fake network names it broadcasts; a second ESP32 (or any phone's Wi-Fi list) reads them back and reassembles the message. No pairing, no internet, no traffic to intercept.
 
 This is a **covert channel** — the concept behind how malware exfiltrates data from air-gapped systems. Students see that "not connected to the internet" does **not** mean "can't leak data."

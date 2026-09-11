@@ -1,6 +1,8 @@
 # "The Deauth Canary" — Build the Defender, Not the Attacker
 ### (ESP32 DevKit V1 only — uses the onboard LED)
 
+> 🚨 **FOR EDUCATIONAL PURPOSES ONLY.** This lab is provided solely to teach cybersecurity awareness in a supervised classroom setting, with informed consent from everyone involved. Do not use these techniques against real people, devices, or networks without explicit authorization — doing so may violate computer-misuse, wiretapping, or other laws in your jurisdiction.
+
 Every tutorial online teaches you to *launch* a deauthentication attack (the one that kicks people off Wi-Fi). This project flips it: students build a **detector** — a "Wi-Fi smoke alarm" that sits quietly and **blinks/alarms the moment someone nearby fires a deauth attack.** You learn the attack by learning to *catch* it.
 
 The twist: deauth frames are unauthenticated management frames that a normal device never sends in bulk. A sudden burst is an unmistakable fingerprint of an attack in progress.

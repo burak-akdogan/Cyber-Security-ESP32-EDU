@@ -1,6 +1,8 @@
 # "Ghost of Networks Past" — Your Phone Is Leaking Your Location History
 ### (ESP32 DevKit V1 only — no additional hardware)
 
+> 🚨 **FOR EDUCATIONAL PURPOSES ONLY.** This lab is provided solely to teach cybersecurity awareness in a supervised classroom setting, with informed consent from everyone involved. Do not use these techniques against real people, devices, or networks without explicit authorization — doing so may violate computer-misuse, wiretapping, or other laws in your jurisdiction.
+
 **The idea nobody expects:** your phone doesn't just receive Wi-Fi — it constantly *calls out the names of every network it has ever remembered*, asking "are you here?" These are **probe requests**. By listening to them, this project rebuilds a rough map of where a person has been — coffee shops, airports, hotels, a friend's home network — **without them ever connecting to anything.**
 
 This is not a Wi-Fi scanner (that lists routers). This listens to the *phones* and shows the history they broadcast into the air.

@@ -1,6 +1,8 @@
 # "The $100 Trick" — How a Wi-Fi Pineapple Steals Trust (Karma Attack)
 ### (ESP32 DevKit V1 only — no additional hardware)
 
+> 🚨 **FOR EDUCATIONAL PURPOSES ONLY.** This lab is provided solely to teach cybersecurity awareness in a supervised classroom setting, with informed consent from everyone involved. Do not use these techniques against real people, devices, or networks without explicit authorization — doing so may violate computer-misuse, wiretapping, or other laws in your jurisdiction.
+
 Hak5's Wi-Fi Pineapple costs ~$100+. Its most famous trick is the **Karma attack**, and the secret is almost embarrassingly simple. In the [Ghost of Networks Past](01-ghost-of-networks-past-en.md) project we saw that phones constantly shout the names of networks they remember. The Pineapple's move is:
 
 > **"I heard you asking for `HomeNet`. Yes — *I* am `HomeNet`. Connect to me."**

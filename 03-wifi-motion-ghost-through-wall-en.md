@@ -1,6 +1,8 @@
 # "The Wi-Fi Ghost" — Sensing Movement Through Walls With Radio
 ### (ESP32 DevKit V1 only — no additional hardware)
 
+> 🚨 **FOR EDUCATIONAL PURPOSES ONLY.** This lab is provided solely to teach cybersecurity awareness in a supervised classroom setting, with informed consent from everyone involved. Do not use these techniques against real people, devices, or networks without explicit authorization — doing so may violate computer-misuse, wiretapping, or other laws in your jurisdiction.
+
 **The unsettling idea:** you don't need a camera to know someone is in a room. When a person moves, their body disturbs the Wi-Fi radio waves already bouncing around the space. This project measures the **jitter in signal strength (RSSI)** from a nearby router and detects *human motion* — even through a wall — turning Wi-Fi itself into a motion sensor.
 
 Students discover that the same radio signals they trust for the internet can silently reveal whether a room is occupied and when people move.

@@ -1,6 +1,8 @@
 # "The Fingerprint Mirror" — What a Network Learns About You in 3 Seconds
 ### (ESP32 DevKit V1 only — no additional hardware)
 
+> 🚨 **FOR EDUCATIONAL PURPOSES ONLY.** This lab is provided solely to teach cybersecurity awareness in a supervised classroom setting, with informed consent from everyone involved. Do not use these techniques against real people, devices, or networks without explicit authorization — doing so may violate computer-misuse, wiretapping, or other laws in your jurisdiction.
+
 Most captive-portal demos try to *steal* something from you. This one does the opposite: the instant you connect, it shows **you** everything it already knows about your device — no form, no password, no clicking. Your device *handed all of it over just by connecting.*
 
 The shock isn't a fake login page. It's a mirror: "Hi, iPhone. You're made by Apple, your device is named *Ahmet's iPhone*, and here's the fingerprint that lets networks recognize you again."

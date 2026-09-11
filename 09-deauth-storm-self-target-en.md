@@ -1,6 +1,8 @@
 # "The Deauth Storm" — Watching a Real Attack (Against Itself)
 ### (ESP32 DevKit V1 only — pairs with Lab 2, the Deauth Canary)
 
+> 🚨 **FOR EDUCATIONAL PURPOSES ONLY.** This lab is provided solely to teach cybersecurity awareness in a supervised classroom setting, with informed consent from everyone involved. Do not use these techniques against real people, devices, or networks without explicit authorization — doing so may violate computer-misuse, wiretapping, or other laws in your jurisdiction.
+
 In [The Deauth Canary](02-deauth-canary-wifi-smoke-alarm-en.md), students built a detector for deauthentication attacks without ever sending one. This project completes the picture: it transmits **real 802.11 deauthentication frames** — the exact same attack the Canary listens for — but deliberately hard-limited so the ESP32 can only ever attack **its own disposable test access point**, never a real network. Watch a volunteer's phone get forcibly kicked off Wi-Fi every few seconds, then bring a Lab 2 Canary board nearby and watch it catch the exact same burst live.
 
 > **This is the one lab in this set that transmits real attack traffic.** It is hard-coded to target only MAC addresses connected to its own throwaway `Deauth_Test_Target` access point — an AP this same board creates and that grants no internet access, the same pattern as the Evil Twin lab. There is no field to type another network's BSSID into. Do not modify this code to target a network you do not personally own and control; deliberately deauthenticating someone else's Wi-Fi is a federal crime in the US (Computer Fraud and Abuse Act) and illegal under equivalent computer-misuse laws elsewhere, whether or not it causes visible harm.

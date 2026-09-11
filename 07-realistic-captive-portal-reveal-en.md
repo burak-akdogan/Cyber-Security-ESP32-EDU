@@ -1,6 +1,8 @@
 # "It Looked So Real" — A Convincing Captive Portal, Then the Reveal
 ### (ESP32 DevKit V1 only — no additional hardware)
 
+> 🚨 **FOR EDUCATIONAL PURPOSES ONLY.** This lab is provided solely to teach cybersecurity awareness in a supervised classroom setting, with informed consent from everyone involved. Do not use these techniques against real people, devices, or networks without explicit authorization — doing so may violate computer-misuse, wiretapping, or other laws in your jurisdiction.
+
 Real Wi-Fi login pages at airports, hotels, and cafés look polished and professional — which is exactly why fake ones fool people. This lab builds a **realistic, good-looking captive portal** for a **fictional brand** ("SkyLink Free WiFi") so students feel how natural it is to type in. Then, the instant they submit, the page **flips into a REVEAL screen**: *"That was fake. Here's exactly how you could have known."*
 
 The power of this lab is the moment between "this looks legit" and "...oh no."

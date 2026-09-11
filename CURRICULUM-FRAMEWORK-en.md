@@ -1,6 +1,8 @@
 # Curriculum Framework — ESP32 Cybersecurity Awareness Labs
 ### For instructors planning a unit around these 10 activities
 
+> 🚨 **FOR EDUCATIONAL PURPOSES ONLY.** This framework and the labs it organizes are provided solely to teach cybersecurity awareness in a supervised classroom setting, with informed consent from everyone involved. Do not use these techniques against real people, devices, or networks without explicit authorization — doing so may violate computer-misuse, wiretapping, or other laws in your jurisdiction.
+
 Each lab file already carries its own "Ethical and Legal Framework," "Discussion," and "Checklist" sections. This document sits **above** all of them: it's the single framework an instructor uses to plan, sequence, supervise, and assess the whole set as one coherent unit, instead of ten disconnected demos.
 
 ---

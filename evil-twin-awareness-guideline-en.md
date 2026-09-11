@@ -1,6 +1,8 @@
 # Evil Twin / Fake Wi-Fi Awareness Activity Guideline
 ### (ESP32 DevKit V1 only — no additional hardware)
 
+> 🚨 **FOR EDUCATIONAL PURPOSES ONLY.** This lab is provided solely to teach cybersecurity awareness in a supervised classroom setting, with informed consent from everyone involved. Do not use these techniques against real people, devices, or networks without explicit authorization — doing so may violate computer-misuse, wiretapping, or other laws in your jurisdiction.
+
 This guideline is designed for students to experience the **evil twin / rogue AP** attack technique in a safe, controlled, **consent-based** classroom setting. The ESP32 broadcasts a fake "free Wi-Fi" network, redirects connecting devices to a "login page" (captive portal) without ever giving them real internet access, and logs the entire interaction.
 
 ---

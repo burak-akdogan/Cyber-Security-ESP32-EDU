@@ -1,6 +1,8 @@
 # "The Bluetooth Poltergeist" — Phantom Devices From Thin Air
 ### (ESP32 DevKit V1 only — uses the onboard Bluetooth Low Energy radio)
 
+> 🚨 **FOR EDUCATIONAL PURPOSES ONLY.** This lab is provided solely to teach cybersecurity awareness in a supervised classroom setting, with informed consent from everyone involved. Do not use these techniques against real people, devices, or networks without explicit authorization — doing so may violate computer-misuse, wiretapping, or other laws in your jurisdiction.
+
 Bluetooth Low Energy advertising is a **one-way, unsigned shout**: any device can broadcast "I'm here, and this is my name" and nearby phones just believe it — there's no proof, no signature, nothing to verify. This project makes an ESP32 impersonate a rotating cast of familiar-sounding devices (`AirPods Pro`, `Smart Lock 4B`, `Fitbit Charge 5`...) that appear and vanish in students' own phones' Bluetooth scanners, live, out of thin air.
 
 None of it is real. Nothing pairs. Nothing connects. That's the point — the *name* was never proof of anything to begin with.
