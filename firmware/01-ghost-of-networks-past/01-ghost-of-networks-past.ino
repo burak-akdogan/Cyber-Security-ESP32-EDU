@@ -60,4 +60,11 @@ void loop() {
   delay(400);
   channel = (channel % 13) + 1;
   esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE);
+
+  // Heartbeat so the console never looks dead while waiting for a phone to probe
+  static unsigned long lastHeartbeat = 0;
+  if (millis() - lastHeartbeat >= 5000) {
+    lastHeartbeat = millis();
+    Serial.printf("... still listening (channel %d, %d names heard so far)\n", channel, count);
+  }
 }

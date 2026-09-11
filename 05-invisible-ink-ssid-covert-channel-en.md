@@ -157,6 +157,13 @@ void loop() {
     printMessage();
     reset();          // reset to catch the next full loop
     delay(3000);
+  } else {
+    // console heartbeat every ~5s so it's clear the receiver is still scanning
+    static unsigned long lastHeartbeat = 0;
+    if (millis() - lastHeartbeat >= 5000) {
+      lastHeartbeat = millis();
+      Serial.println("... still scanning for hidden SSIDs");
+    }
   }
   delay(500);
 }

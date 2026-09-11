@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Cyber Sec ESP32 — Flash a Lab</title>
+<title>Cyber Security ESP32 — Flash a Lab</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
@@ -56,7 +56,7 @@
   body::before{ top:-20vw; left:-15vw; background:radial-gradient(circle, var(--accent), transparent 70%); }
   body::after{ bottom:-25vw; right:-15vw; background:radial-gradient(circle, var(--accent-2), transparent 70%); }
 
-  .wrap{ max-width:880px; margin-inline:auto; }
+  .wrap{ max-width:900px; margin-inline:auto; }
 
   /* ---------- top warning banner ---------- */
   .banner{
@@ -69,7 +69,7 @@
     -webkit-backdrop-filter:blur(10px);
   }
   .banner p{
-    max-width:848px; margin:0 auto;
+    max-width:868px; margin:0 auto;
     font-size:13px; line-height:1.5; color:#ffd98a;
   }
   .banner b{ color:#ffe8b8 }
@@ -173,7 +173,16 @@
   .card h2{ font-family:var(--display); font-size:15.5px; font-weight:600; margin:0; color:#eef4f8 }
   .card p{ margin:0; font-size:12.5px; color:var(--ink-dim); line-height:1.5; flex-grow:1 }
 
-  esp-web-install-button{ --esp-tools-button-color:var(--accent); align-self:flex-start }
+  .card-cta{
+    align-self:stretch; margin-top:2px;
+    padding:10px 14px; border-radius:10px; border:1px solid rgba(56,189,248,.35);
+    background:rgba(56,189,248,.08); color:var(--accent);
+    font-family:var(--sans); font-size:13px; font-weight:600; cursor:pointer;
+    transition:background .2s, transform .2s;
+  }
+  .card-cta:hover{ background:rgba(56,189,248,.16); transform:translateY(-1px) }
+
+  esp-web-install-button{ --esp-tools-button-color:var(--accent); width:100% }
   esp-web-install-button::part(button){ font-family:var(--sans) }
 
   /* ---------- footer ---------- */
@@ -190,6 +199,198 @@
   @media (max-width:480px){
     footer{ flex-direction:column; align-items:flex-start }
   }
+
+  /* ---------- ethics agreement modal (shown on first visit) ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:50;
+    display:flex; align-items:center; justify-content:center;
+    padding:24px 16px;
+    background:rgba(3,5,8,.78);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+  }
+  .modal-overlay.hidden{ display:none }
+
+  .modal-box{
+    width:100%; max-width:680px; max-height:88vh;
+    overflow-y:auto; scrollbar-width:thin;
+    background:rgba(16,22,29,.98);
+    border:1px solid rgba(167,139,250,.28);
+    border-radius:18px;
+    padding:28px 30px;
+    box-shadow:0 28px 72px -18px rgba(0,0,0,.65);
+  }
+
+  .ethics-header{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:12px;
+  }
+  .ethics-icon{ font-size:26px }
+  .ethics-header .section-label{ margin-bottom:3px }
+  .ethics-header h2{
+    font-family:var(--display); font-size:19px; margin:0; color:#f2f8fb;
+  }
+
+  .ethics-intro{
+    color:var(--ink-dim); font-size:13px; line-height:1.6; margin:0 0 18px;
+  }
+
+  .ethics-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+  }
+  .ethics-card{
+    padding:14px;
+    border:1px solid var(--panel-border);
+    border-radius:12px;
+    background:rgba(5,7,10,.45);
+  }
+  .ethics-card span{ font-size:17px }
+  .ethics-card h3{
+    font-family:var(--display); font-size:13.5px; margin:8px 0 5px; color:#eef4f8;
+  }
+  .ethics-card p{
+    margin:0; color:var(--ink-dim); font-size:12px; line-height:1.5;
+  }
+
+  .ethics-commitment{
+    margin-top:16px;
+    padding:16px 18px;
+    border-radius:12px;
+    border:1px solid rgba(56,189,248,.25);
+    background:rgba(56,189,248,.06);
+  }
+  .commitment-title{
+    font-family:var(--display); font-weight:600; font-size:13.5px;
+    color:var(--accent); margin-bottom:7px;
+  }
+  .ethics-commitment p{
+    color:var(--ink-dim); font-size:12px; line-height:1.6; margin:0 0 12px;
+  }
+  .commitment-rule{
+    display:flex; flex-wrap:wrap; gap:7px;
+    font-family:var(--mono); font-size:10.5px; color:var(--ink);
+  }
+  .commitment-rule span,
+  .commitment-rule strong{
+    padding:5px 9px; border-radius:999px;
+    background:rgba(255,255,255,.05); border:1px solid var(--panel-border);
+  }
+  .commitment-rule strong{ color:var(--accent) }
+
+  .ethics-agree{
+    display:flex; align-items:flex-start; gap:9px;
+    margin-top:18px; padding-top:16px;
+    border-top:1px solid var(--panel-border);
+    font-size:12.5px; color:var(--ink-dim); line-height:1.5;
+    cursor:pointer;
+  }
+  .ethics-agree input{
+    margin-top:2px; width:16px; height:16px;
+    accent-color:var(--accent); cursor:pointer; flex-shrink:0;
+  }
+
+  .modal-continue{
+    display:block; width:100%; margin-top:18px;
+    padding:13px 20px; border-radius:12px; border:none;
+    font-family:var(--sans); font-size:14px; font-weight:600;
+    color:#04121a; cursor:pointer;
+    background:linear-gradient(135deg, var(--accent), var(--accent-2));
+    transition:opacity .2s, transform .2s;
+  }
+  .modal-continue:hover{ transform:translateY(-1px) }
+  .modal-continue:disabled{
+    opacity:.35; cursor:not-allowed; transform:none;
+  }
+
+  @media (max-width:560px){
+    .ethics-grid{ grid-template-columns:1fr }
+    .modal-box{ padding:22px 18px }
+  }
+
+  /* ---------- per-lab guide side panel ---------- */
+  /* A docked drawer, not a blocking modal: it never covers the whole page
+     and never has to close for the install button's own dialog to work --
+     the guide can stay open and be read while flashing is in progress. */
+  .lab-drawer{
+    position:fixed; top:0; right:0; z-index:40;
+    width:min(400px, 92vw); height:100vh;
+    background:rgba(13,18,24,.98);
+    border-left:1px solid rgba(167,139,250,.28);
+    box-shadow:-16px 0 48px -14px rgba(0,0,0,.6);
+    padding:26px 24px 32px;
+    overflow-y:auto; scrollbar-width:thin;
+    transform:translateX(100%);
+    transition:transform .28s ease;
+  }
+  .lab-drawer.open{ transform:translateX(0) }
+
+  .modal-close{
+    position:absolute; top:16px; right:16px;
+    width:30px; height:30px; border-radius:50%;
+    border:1px solid var(--panel-border); background:rgba(255,255,255,.04);
+    color:var(--ink-dim); font-size:16px; line-height:1; cursor:pointer;
+  }
+  .modal-close:hover{ color:var(--ink); border-color:var(--accent) }
+
+  .lab-modal-header{ display:flex; align-items:center; gap:12px; margin-bottom:6px; padding-right:34px }
+  .lab-modal-icon{ font-size:26px }
+  .lab-modal-header h2{ font-family:var(--display); font-size:19px; margin:0; color:#f2f8fb }
+  .lab-modal-header .tag{ margin-top:6px }
+
+  .lab-modal-desc{ color:var(--ink-dim); font-size:13px; line-height:1.6; margin:14px 0 18px }
+
+  .wifi-note{
+    display:flex; gap:10px; align-items:flex-start;
+    margin:0 0 18px; padding:12px 14px; border-radius:10px;
+    border:1px solid rgba(252,211,77,.3); background:rgba(252,211,77,.07);
+    font-size:12.5px; color:#fde68a; line-height:1.5;
+  }
+
+  .lab-steps{ margin:0 0 22px; padding:0; list-style:none; counter-reset:step }
+  .lab-steps li{
+    counter-increment:step;
+    display:flex; gap:12px; align-items:flex-start;
+    padding:10px 0; border-bottom:1px solid var(--panel-border);
+    font-size:13px; color:var(--ink-dim); line-height:1.55;
+  }
+  .lab-steps li:last-child{ border-bottom:none }
+  .lab-steps li::before{
+    content:counter(step);
+    flex-shrink:0; width:22px; height:22px; border-radius:50%;
+    background:rgba(56,189,248,.12); color:var(--accent);
+    font-family:var(--mono); font-size:11.5px; font-weight:600;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .lab-steps code{ font-family:var(--mono); font-size:11.5px; color:#c3e6fb; background:rgba(56,189,248,.1); padding:1px 5px; border-radius:5px }
+
+  .lab-install{ padding-top:4px }
+
+  /* ---------- reopen pill ---------- */
+  .reopen-ethics{
+    display:none;
+    align-items:center;
+    gap:8px;
+    position:fixed;
+    right:18px;
+    bottom:18px;
+    z-index:15;
+    padding:10px 16px;
+    border-radius:999px;
+    background:var(--panel);
+    border:1px solid rgba(167,139,250,.35);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:12.5px;
+    cursor:pointer;
+    backdrop-filter:blur(8px);
+    box-shadow:0 8px 24px -8px rgba(0,0,0,.5);
+  }
+  .reopen-ethics:hover{ border-color:var(--accent) }
+  .reopen-ethics.show{ display:flex }
 </style>
 </head>
 <body>
@@ -206,12 +407,12 @@
 
     <div class="hero">
       <div class="kicker"><span class="dot"></span> ESP32 DevKit V1 · Browser Flashing</div>
-      <h1>⚡ Cyber Sec ESP32<br>Flash a Lab From Your Browser</h1>
+      <h1>⚡ Cyber Security ESP32<br>Flash a Lab From Your Browser</h1>
       <p class="lead">
-        Pick a lab below and click <b>Connect</b>. This uses
-        <a href="https://esphome.github.io/esp-web-tools/" target="_blank" rel="noopener">ESP Web Tools</a>
-        to flash a pre-built firmware straight from GitHub to your ESP32 DevKit V1 — no Arduino IDE,
-        no compiling required.
+        Pick a lab below to open its guide — what to expect, whether it needs your Wi-Fi info, and what
+        to watch in the Console — then flash it straight from that guide using
+        <a href="https://esphome.github.io/esp-web-tools/" target="_blank" rel="noopener">ESP Web Tools</a>.
+        No Arduino IDE, no compiling required.
       </p>
       <div class="byline">
         Built for the classroom by
@@ -231,75 +432,7 @@
 
     <p class="section-label">// 10 labs</p>
 
-    <div class="grid">
-
-      <div class="card">
-        <div class="card-top"><span class="card-icon">🎭</span><span class="tag easy">Easy</span></div>
-        <div><h2>0 · Evil Twin / Fake Wi-Fi</h2><p>Rogue AP + captive portal phishing awareness demo.</p></div>
-        <esp-web-install-button manifest="firmware/00-evil-twin-wifi/manifest.json"></esp-web-install-button>
-      </div>
-
-      <div class="card">
-        <div class="card-top"><span class="card-icon">👻</span><span class="tag easy">Easy</span></div>
-        <div><h2>1 · Ghost of Networks Past</h2><p>Passive probe-request "confession wall".</p></div>
-        <esp-web-install-button manifest="firmware/01-ghost-of-networks-past/manifest.json"></esp-web-install-button>
-      </div>
-
-      <div class="card">
-        <div class="card-top"><span class="card-icon">🐤</span><span class="tag easy">Easy</span></div>
-        <div><h2>2 · Deauth Canary</h2><p>Onboard-LED deauth/disassoc attack detector.</p></div>
-        <esp-web-install-button manifest="firmware/02-deauth-canary/manifest.json"></esp-web-install-button>
-      </div>
-
-      <div class="card">
-        <div class="card-top"><span class="card-icon">📡</span><span class="tag medium">Medium</span></div>
-        <div><h2>3 · Wi-Fi Ghost (motion through walls)</h2><p>RSSI-jitter motion sensor with a live dashboard. Edit the SSID/password in the .ino before flashing.</p></div>
-        <esp-web-install-button manifest="firmware/03-wifi-motion-ghost/manifest.json"></esp-web-install-button>
-      </div>
-
-      <div class="card">
-        <div class="card-top"><span class="card-icon">🪞</span><span class="tag easy">Easy</span></div>
-        <div><h2>4 · Fingerprint Mirror</h2><p>Shows a connecting device its own MAC/vendor/User-Agent fingerprint.</p></div>
-        <esp-web-install-button manifest="firmware/04-fingerprint-mirror/manifest.json"></esp-web-install-button>
-      </div>
-
-      <div class="card">
-        <div class="card-top"><span class="card-icon">🖋️</span><span class="tag medium">Medium</span></div>
-        <div><h2>5a · Invisible Ink — Sender</h2><p>Encodes a secret message into rotating SSID broadcasts.</p></div>
-        <esp-web-install-button manifest="firmware/05-invisible-ink-sender/manifest.json"></esp-web-install-button>
-      </div>
-
-      <div class="card">
-        <div class="card-top"><span class="card-icon">🕵️</span><span class="tag medium">Medium</span></div>
-        <div><h2>5b · Invisible Ink — Receiver</h2><p>Scans for the hidden SSIDs and reassembles the message.</p></div>
-        <esp-web-install-button manifest="firmware/05-invisible-ink-receiver/manifest.json"></esp-web-install-button>
-      </div>
-
-      <div class="card">
-        <div class="card-top"><span class="card-icon">🍍</span><span class="tag medium">Medium</span></div>
-        <div><h2>6 · Karma (Wi-Fi Pineapple demo)</h2><p>Impersonates trusted SSIDs phones broadcast, one at a time.</p></div>
-        <esp-web-install-button manifest="firmware/06-karma-demo/manifest.json"></esp-web-install-button>
-      </div>
-
-      <div class="card">
-        <div class="card-top"><span class="card-icon">🎣</span><span class="tag easy">Easy</span></div>
-        <div><h2>7 · Realistic Captive Portal Reveal</h2><p>Polished fictional-brand login that flips into an instant "that was fake" reveal.</p></div>
-        <esp-web-install-button manifest="firmware/07-realistic-portal-reveal/manifest.json"></esp-web-install-button>
-      </div>
-
-      <div class="card">
-        <div class="card-top"><span class="card-icon">📶</span><span class="tag easy">Easy</span></div>
-        <div><h2>8 · Bluetooth Poltergeist</h2><p>Broadcasts rotating fake BLE device names — no pairing, no data.</p></div>
-        <esp-web-install-button manifest="firmware/08-bluetooth-poltergeist/manifest.json"></esp-web-install-button>
-      </div>
-
-      <div class="card">
-        <div class="card-top"><span class="card-icon">⛈️</span><span class="tag medium">Medium</span></div>
-        <div><h2>9 · Deauth Storm (self-target)</h2><p>Real deauth frames, hard-locked to its own disposable test AP only.</p></div>
-        <esp-web-install-button manifest="firmware/09-deauth-storm-self-target/manifest.json"></esp-web-install-button>
-      </div>
-
-    </div>
+    <div class="grid" id="labGrid"></div>
 
     <footer>
       <span class="credit">© 2026 <b>Burak Akdoğan</b> · educational use only</span>
@@ -307,5 +440,374 @@
     </footer>
 
   </div>
+
+  <div class="modal-overlay" id="ethicsModal">
+    <div class="modal-box">
+      <div class="ethics-header">
+        <span class="ethics-icon">⚖️</span>
+        <div>
+          <div class="section-label">STUDENT RESPONSIBILITY</div>
+          <h2>Ethical Code of Conduct</h2>
+        </div>
+      </div>
+
+      <p class="ethics-intro">
+        Cybersecurity professionals have powerful tools. With that power comes
+        responsibility. These classroom labs are designed to help you understand
+        how attacks work, how systems can be defended, and how security
+        professionals think.
+      </p>
+
+      <div class="ethics-grid">
+
+        <div class="ethics-card">
+          <span>🎯</span>
+          <h3>1. Get Permission First</h3>
+          <p>
+            I will only test systems, networks, devices, and accounts when I have
+            explicit permission to do so. A classroom lab is authorized because
+            the instructor has provided the environment for the activity.
+          </p>
+        </div>
+
+        <div class="ethics-card">
+          <span>🧪</span>
+          <h3>2. Stay Inside the Lab</h3>
+          <p>
+            I will use ESP32 devices and cybersecurity tools only within the
+            designated classroom environment. I will not target school,
+            personal, public, or neighboring networks or devices.
+          </p>
+        </div>
+
+        <div class="ethics-card">
+          <span>🔒</span>
+          <h3>3. Protect Privacy</h3>
+          <p>
+            I will not intentionally collect, expose, save, or share passwords,
+            private messages, personal information, device identifiers, or other
+            sensitive data.
+          </p>
+        </div>
+
+        <div class="ethics-card">
+          <span>🧠</span>
+          <h3>4. Understand Before You Attack</h3>
+          <p>
+            The goal of an attack simulation is learning. Before running a tool,
+            I should understand what it does, what it could affect, and how a
+            defender could detect or prevent it.
+          </p>
+        </div>
+
+        <div class="ethics-card">
+          <span>🛡️</span>
+          <h3>5. Think Like a Defender</h3>
+          <p>
+            For every offensive technique, I will ask: What is the risk? How could
+            this attack be detected? How could a system be protected?
+          </p>
+        </div>
+
+        <div class="ethics-card">
+          <span>🚫</span>
+          <h3>6. Stop When Something Goes Wrong</h3>
+          <p>
+            If a lab behaves unexpectedly, affects another device, or leaves the
+            authorized environment, I will stop immediately and notify the
+            instructor.
+          </p>
+        </div>
+
+        <div class="ethics-card">
+          <span>📚</span>
+          <h3>7. Document Responsibly</h3>
+          <p>
+            I will document what I tested, what happened, and what I learned.
+            Reports should focus on understanding vulnerabilities and improving
+            security rather than demonstrating unauthorized access.
+          </p>
+        </div>
+
+        <div class="ethics-card">
+          <span>🤝</span>
+          <h3>8. Respect Other Students</h3>
+          <p>
+            I will not interfere with another student's device, network traffic,
+            lab, or project. Cybersecurity learning should be collaborative,
+            controlled, and respectful.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="ethics-commitment">
+        <div class="commitment-title">⚡ My Cybersecurity Commitment</div>
+        <p>
+          I understand that cybersecurity tools can be used for both defensive
+          and harmful purposes. I will use the skills I learn in this course
+          responsibly, only with authorization, and with the goal of protecting
+          people, systems, networks, and information.
+        </p>
+
+        <div class="commitment-rule">
+          <strong>Think.</strong>
+          <span>Get permission.</span>
+          <span>Test safely.</span>
+          <span>Protect others.</span>
+          <span>Learn.</span>
+        </div>
+      </div>
+
+      <label class="ethics-agree" for="ethicsAgree">
+        <input type="checkbox" id="ethicsAgree">
+        I have read and agree to follow this Code of Conduct.
+      </label>
+
+      <button type="button" class="modal-continue" id="modalContinue" disabled>Continue to the labs →</button>
+    </div>
+  </div>
+
+  <button type="button" class="reopen-ethics" id="reopenEthics">⚖️ Code of Conduct</button>
+
+  <aside class="lab-drawer" id="labModal">
+    <button type="button" class="modal-close" id="labModalClose">✕</button>
+    <div class="lab-modal-header">
+      <span class="lab-modal-icon" id="labModalIcon"></span>
+      <div>
+        <h2 id="labModalTitle"></h2>
+        <span class="tag" id="labModalTag"></span>
+      </div>
+    </div>
+    <p class="lab-modal-desc" id="labModalDesc"></p>
+    <div class="wifi-note" id="labModalWifiNote" hidden>
+      <span>📶</span>
+      <span>This lab will ask you to type in a real Wi-Fi network name and password on a page that appears after flashing.</span>
+    </div>
+    <ol class="lab-steps" id="labModalSteps"></ol>
+    <div class="lab-install" id="labModalInstall"></div>
+  </aside>
+
+  <script>
+  var LABS = [
+    {
+      icon: "🎭", tag: "easy", title: "0 · Evil Twin / Fake Wi-Fi",
+      desc: "Rogue AP + captive portal phishing awareness demo.",
+      manifest: "firmware/00-evil-twin-wifi/manifest.json", needsWifi: false,
+      steps: [
+        "Click Install below and flash the board.",
+        "On a phone, join the open Wi-Fi network <code>Free_School_WiFi</code>.",
+        "A login page should pop up automatically. If it doesn't, open a browser and visit any http:// address.",
+        "Come back here and open Console/Logs — you'll see the page view and whatever (fake!) username/password get typed."
+      ]
+    },
+    {
+      icon: "👻", tag: "easy", title: "1 · Ghost of Networks Past",
+      desc: "Passive probe-request \"confession wall\".",
+      manifest: "firmware/01-ghost-of-networks-past/manifest.json", needsWifi: false,
+      steps: [
+        "Click Install below and flash the board.",
+        "Open Console/Logs right after — you'll immediately see a startup banner, then a heartbeat line every few seconds.",
+        "It only prints more when a nearby phone actively asks for a network it remembers (a \"probe request\"). Try an older or unlocked phone — modern locked phones often stay quiet on purpose, and that resistance is its own lesson."
+      ]
+    },
+    {
+      icon: "🐤", tag: "easy", title: "2 · Deauth Canary",
+      desc: "Onboard-LED deauth/disassoc attack detector.",
+      manifest: "firmware/02-deauth-canary/manifest.json", needsWifi: false,
+      steps: [
+        "Click Install below and flash the board.",
+        "Open Console — it prints \"armed\" and then a quiet heartbeat every few seconds so you know it's alive.",
+        "It only alarms (LED blinks + console message) when a real deauth attack happens nearby — flash a second board with Lab 9 (Deauth Storm) to see it trigger live."
+      ]
+    },
+    {
+      icon: "📡", tag: "medium", title: "3 · Wi-Fi Ghost (motion through walls)",
+      desc: "RSSI-jitter motion sensor with a live dashboard.",
+      manifest: "firmware/03-wifi-motion-ghost/manifest.json", needsWifi: true,
+      steps: [
+        "Click Install below and flash the board.",
+        "Join the board's own open Wi-Fi network <code>WiFiGhost-Setup</code> from a phone or laptop.",
+        "A setup page opens automatically asking for your classroom Wi-Fi name and password — type them in and tap Connect.",
+        "Rejoin your normal Wi-Fi, then open Console here — it prints the dashboard address (e.g. <code>http://192.168.1.42</code>). Open that in a browser.",
+        "Stay still for a few seconds while it calibrates, then move — watch the dashboard flip to MOTION DETECTED."
+      ]
+    },
+    {
+      icon: "🪞", tag: "easy", title: "4 · Fingerprint Mirror",
+      desc: "Shows a connecting device its own MAC/vendor/User-Agent fingerprint.",
+      manifest: "firmware/04-fingerprint-mirror/manifest.json", needsWifi: false,
+      steps: [
+        "Click Install below and flash the board.",
+        "Join the open Wi-Fi network <code>Free_Guest_WiFi</code> from a phone.",
+        "A page should open automatically on your PHONE showing everything it just revealed — that's this lab's dashboard, and it lives on the phone's browser, not in the Console.",
+        "Console here will only print one line at boot — that's expected for this lab."
+      ]
+    },
+    {
+      icon: "🖋️", tag: "medium", title: "5a · Invisible Ink — Sender",
+      desc: "Encodes a secret message into rotating SSID broadcasts.",
+      manifest: "firmware/05-invisible-ink-sender/manifest.json", needsWifi: false,
+      steps: [
+        "Click Install below and flash the board.",
+        "Open Console — it continuously prints each secret chunk it's broadcasting as a fake Wi-Fi network name.",
+        "Flash a second board with \"Invisible Ink — Receiver\" (or check a phone's Wi-Fi list) to catch and decode the message."
+      ]
+    },
+    {
+      icon: "🕵️", tag: "medium", title: "5b · Invisible Ink — Receiver",
+      desc: "Scans for the hidden SSIDs and reassembles the message.",
+      manifest: "firmware/05-invisible-ink-receiver/manifest.json", needsWifi: false,
+      steps: [
+        "Click Install below and flash the board.",
+        "Open Console — it prints \"Listening...\" and then a heartbeat every few seconds.",
+        "It only captures chunks once a second board running \"Invisible Ink — Sender\" is actively broadcasting nearby."
+      ]
+    },
+    {
+      icon: "🍍", tag: "medium", title: "6 · Karma (Wi-Fi Pineapple demo)",
+      desc: "Impersonates trusted SSIDs phones broadcast, one at a time.",
+      manifest: "firmware/06-karma-demo/manifest.json", needsWifi: false,
+      steps: [
+        "Click Install below and flash the board.",
+        "Open Console — it listens for phones nearby announcing networks they trust, printing a heartbeat while it waits.",
+        "Once it hears one, it starts impersonating it and prints when a phone auto-connects. Modern locked phones may never announce anything — that's expected and is the lesson."
+      ]
+    },
+    {
+      icon: "🎣", tag: "easy", title: "7 · Realistic Captive Portal Reveal",
+      desc: "Polished fictional-brand login that flips into an instant \"that was fake\" reveal.",
+      manifest: "firmware/07-realistic-portal-reveal/manifest.json", needsWifi: false,
+      steps: [
+        "Click Install below and flash the board.",
+        "Join the open Wi-Fi network <code>SkyLink_Free_WiFi</code> from a phone — a polished fake login page should pop up automatically.",
+        "Type in TEST data only, submit, and watch it flip into the \"that was fake\" reveal page.",
+        "Open Console here to see the same page-view and submit events logged live."
+      ]
+    },
+    {
+      icon: "📶", tag: "easy", title: "8 · Bluetooth Poltergeist",
+      desc: "Broadcasts rotating fake BLE device names — no pairing, no data.",
+      manifest: "firmware/08-bluetooth-poltergeist/manifest.json", needsWifi: false,
+      steps: [
+        "Click Install below and flash the board.",
+        "Open Console — it continuously prints which fake Bluetooth device name it's broadcasting right now.",
+        "Open a Bluetooth scanner app on a nearby phone to watch the fake devices appear and disappear live."
+      ]
+    },
+    {
+      icon: "⛈️", tag: "medium", title: "9 · Deauth Storm (self-target)",
+      desc: "Real deauth frames, hard-locked to its own disposable test AP only.",
+      manifest: "firmware/09-deauth-storm-self-target/manifest.json", needsWifi: false,
+      steps: [
+        "Click Install below and flash the board.",
+        "Open Console — it prints \"armed\" and then a status line every 6 seconds even with nothing connected.",
+        "Connect a phone to its own test AP <code>Deauth_Test_Target</code> and watch it get kicked off repeatedly, logged live in Console.",
+        "Pair with a second board running Lab 2 (Deauth Canary) to see it detect the same attack live."
+      ]
+    }
+  ];
+
+  (function(){
+    var grid = document.getElementById('labGrid');
+    grid.innerHTML = LABS.map(function(lab, i){
+      return '' +
+        '<div class="card">' +
+          '<div class="card-top"><span class="card-icon">' + lab.icon + '</span><span class="tag ' + lab.tag + '">' + (lab.tag === 'easy' ? 'Easy' : 'Medium') + '</span></div>' +
+          '<div><h2>' + lab.title + '</h2><p>' + lab.desc + '</p></div>' +
+          '<button type="button" class="card-cta" data-lab="' + i + '">View Guide &amp; Flash →</button>' +
+        '</div>';
+    }).join('');
+  })();
+
+  (function(){
+    var KEY = 'ethicsAgreed';
+    var overlay = document.getElementById('ethicsModal');
+    var checkbox = document.getElementById('ethicsAgree');
+    var continueBtn = document.getElementById('modalContinue');
+    var reopenBtn = document.getElementById('reopenEthics');
+
+    function showModal(){
+      overlay.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+    function hideModal(){
+      overlay.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    var agreed = false;
+    try { agreed = localStorage.getItem(KEY) === 'true'; } catch(e) {}
+
+    if (agreed) {
+      checkbox.checked = true;
+      continueBtn.disabled = false;
+      hideModal();
+      reopenBtn.classList.add('show');
+    } else {
+      showModal();
+    }
+
+    checkbox.addEventListener('change', function(){
+      continueBtn.disabled = !checkbox.checked;
+    });
+
+    continueBtn.addEventListener('click', function(){
+      if (!checkbox.checked) return;
+      try { localStorage.setItem(KEY, 'true'); } catch(e) {}
+      hideModal();
+      reopenBtn.classList.add('show');
+    });
+
+    reopenBtn.addEventListener('click', showModal);
+  })();
+
+  (function(){
+    var overlay = document.getElementById('labModal');
+    var closeBtn = document.getElementById('labModalClose');
+    var icon = document.getElementById('labModalIcon');
+    var titleEl = document.getElementById('labModalTitle');
+    var tagEl = document.getElementById('labModalTag');
+    var descEl = document.getElementById('labModalDesc');
+    var wifiNote = document.getElementById('labModalWifiNote');
+    var stepsEl = document.getElementById('labModalSteps');
+    var installEl = document.getElementById('labModalInstall');
+
+    function openLab(lab){
+      icon.textContent = lab.icon;
+      titleEl.textContent = lab.title;
+      tagEl.textContent = lab.tag === 'easy' ? 'Easy' : 'Medium';
+      tagEl.className = 'tag ' + lab.tag;
+      descEl.textContent = lab.desc;
+      wifiNote.hidden = !lab.needsWifi;
+      stepsEl.innerHTML = lab.steps.map(function(s){ return '<li>' + s + '</li>'; }).join('');
+      installEl.innerHTML = '';
+      var btn = document.createElement('esp-web-install-button');
+      btn.setAttribute('manifest', lab.manifest);
+      installEl.appendChild(btn);
+
+      overlay.classList.add('open');
+    }
+
+    function closeLab(){
+      overlay.classList.remove('open');
+    }
+
+    document.getElementById('labGrid').addEventListener('click', function(e){
+      var btn = e.target.closest('.card-cta');
+      if (!btn) return;
+      openLab(LABS[parseInt(btn.getAttribute('data-lab'), 10)]);
+    });
+
+    // This is a docked side panel, not a blocking modal: it has no backdrop,
+    // doesn't lock page scroll, and never has to close for the install
+    // button's own connect/flash dialog to work -- the guide can stay open
+    // and be read the whole time a board is flashing.
+    closeBtn.addEventListener('click', closeLab);
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape' && overlay.classList.contains('open')) closeLab();
+    });
+  })();
+  </script>
 </body>
 </html>

@@ -130,6 +130,12 @@ void loop() {
     delay(400);
     sniffChannel = (sniffChannel % 11) + 1;
     esp_wifi_set_channel(sniffChannel, WIFI_SECOND_CHAN_NONE);
+
+    static unsigned long lastHeartbeat = 0;
+    if (millis() - lastHeartbeat >= 5000) {
+      lastHeartbeat = millis();
+      Serial.printf("... still listening for trusted network names (channel %d)\n", sniffChannel);
+    }
     return;
   }
 

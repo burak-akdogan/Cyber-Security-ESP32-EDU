@@ -53,7 +53,16 @@ void loop() {
     } else {
       // slow heartbeat blink = "all clear, still watching"
       digitalWrite(LED_PIN, HIGH); delay(20); digitalWrite(LED_PIN, LOW);
-      if (c > 0) Serial.printf("(quiet) %u mgmt disconnect frames on ch %d\n", c, channel);
+      if (c > 0) {
+        Serial.printf("(quiet) %u mgmt disconnect frames on ch %d\n", c, channel);
+      } else {
+        // console heartbeat every ~5s so it's clear the canary is still alive
+        static uint8_t quietWindows = 0;
+        if (++quietWindows >= 5) {
+          quietWindows = 0;
+          Serial.printf("... still watching (ch %d), all clear\n", channel);
+        }
+      }
     }
 
     // hop a channel each window to widen coverage

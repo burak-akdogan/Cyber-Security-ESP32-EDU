@@ -1,4 +1,4 @@
-# Cyber Sec ESP32 — Hands-On Wi-Fi Security Awareness Labs
+# Cyber Security ESP32 — Hands-On Wi-Fi Security Awareness Labs
 ### For the classroom · ESP32 DevKit V1 only · no extra hardware
 
 > 🚨 **FOR EDUCATIONAL PURPOSES ONLY.** This repository and every lab in it are provided solely to teach cybersecurity awareness in a supervised classroom setting, with informed consent from everyone involved. Do not use these techniques against real people, devices, or networks without explicit authorization — doing so may violate computer-misuse, wiretapping, or other laws in your jurisdiction. The author(s) assume no liability for misuse.
