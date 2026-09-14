@@ -185,6 +185,33 @@
   esp-web-install-button{ --esp-tools-button-color:var(--accent); width:100% }
   esp-web-install-button::part(button){ font-family:var(--sans) }
 
+  /* ---------- classroom CTF event section ---------- */
+  .ctf-section{
+    margin:8px 0 40px; padding:22px;
+    background:rgba(19,26,34,.6); border:1px solid rgba(167,139,250,.25);
+    border-radius:16px; backdrop-filter:blur(6px);
+  }
+  .ctf-header{ display:flex; align-items:center; gap:12px; margin-bottom:4px }
+  .ctf-icon{ font-size:24px }
+  .ctf-header .section-label{ margin:0 0 3px; color:var(--accent-2) }
+  .ctf-header h2{ font-family:var(--display); font-size:17px; margin:0; color:#f2f8fb }
+  .ctf-desc{ color:var(--ink-dim); font-size:13px; line-height:1.6; margin:12px 0 16px; max-width:640px }
+  .ctf-desc a{ color:var(--accent-2) }
+  .ctf-rules-btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:9px 16px; border-radius:10px; margin-bottom:18px;
+    border:1px solid rgba(167,139,250,.4); background:rgba(167,139,250,.08);
+    color:#c9b8fb; font-size:13px; font-weight:600; text-decoration:none;
+    transition:background .2s, transform .2s;
+  }
+  .ctf-rules-btn:hover{ background:rgba(167,139,250,.16); transform:translateY(-1px) }
+  .ctf-section .grid{ margin-bottom:0 }
+  .ctf-section .card-cta{
+    border-color:rgba(167,139,250,.35); background:rgba(167,139,250,.08); color:#c9b8fb;
+  }
+  .ctf-section .card-cta:hover{ background:rgba(167,139,250,.16) }
+  .ctf-section .card::before{ background:linear-gradient(90deg, var(--accent-2), var(--accent)) }
+
   /* ---------- footer ---------- */
   footer{
     margin-top:48px; padding-top:24px; border-top:1px solid var(--panel-border);
@@ -452,6 +479,25 @@
 
     <div class="grid" id="labGrid"></div>
 
+    <div class="ctf-section">
+      <div class="ctf-header">
+        <span class="ctf-icon">🚩</span>
+        <div>
+          <p class="section-label">// classroom ctf event</p>
+          <h2>Whole-Class Capture the Flag</h2>
+        </div>
+      </div>
+      <p class="ctf-desc">
+        Run a live round against a Raspberry Pi projected on the classroom screen. These two
+        tools connect over the event Wi-Fi to help you find — and later patch — real, intentionally
+        planted vulnerabilities. No coding required. See
+        <a href="https://github.com/burak-akdogan/Cyber-Security-ESP32-EDU/blob/main/CLASSROOM-CTF-EVENT-en.md" target="_blank" rel="noopener">the full event design</a>
+        for setup and scoring.
+      </p>
+      <a class="ctf-rules-btn" href="ctf-rules.html" target="_blank" rel="noopener">📄 View / Download the Rules</a>
+      <div class="grid" id="ctfGrid"></div>
+    </div>
+
     <footer>
       <span class="credit">© 2026 <b>Burak Akdoğan</b> · educational use only</span>
       <a href="https://github.com/burak-akdogan/Cyber-Security-ESP32-EDU" target="_blank" rel="noopener">Source on GitHub →</a>
@@ -601,9 +647,10 @@
     <ol class="lab-steps" id="labModalSteps"></ol>
     <div class="lab-install" id="labModalInstall"></div>
     <div class="wifi-form" id="labModalWifiForm" hidden>
-      <div class="wifi-form-title">📶 Send Wi-Fi credentials to the board</div>
+      <div class="wifi-form-title" id="wifiFormTitle">📶 Send Wi-Fi credentials to the board</div>
       <input type="text" id="wifiSsidInput" placeholder="Wi-Fi network name (SSID)" autocomplete="off">
       <input type="password" id="wifiPassInput" placeholder="Password" autocomplete="off">
+      <input type="text" id="wifiTargetInput" placeholder="Target IP (e.g. 192.168.1.42)" autocomplete="off" hidden>
       <button type="button" class="wifi-send-btn" id="wifiSendBtn">Send to Board</button>
       <p class="wifi-form-status" id="wifiFormStatus"></p>
       <pre class="wifi-console" id="wifiConsole" hidden></pre>
@@ -705,19 +752,47 @@
         "Connect a phone to its own test AP <code>Deauth_Test_Target</code> and watch it get kicked off repeatedly, logged live in Console.",
         "Pair with a second board running Lab 2 (Deauth Canary) to see it detect the same attack live."
       ]
+    },
+    {
+      icon: "🔎", tag: "easy", title: "CTF · Recon Scanner",
+      desc: "Probes the target Raspberry Pi's common ports and paths — the \"where do I even start\" tool.",
+      manifest: "firmware/ctf-recon-scanner/manifest.json", wifiForm: true, needsTargetIp: true, category: "ctf",
+      steps: [
+        "Click Install below and flash the board.",
+        "Connect it to the event Wi-Fi and type the target Pi's IP address (ask your instructor) below, then click Send to Board.",
+        "Open Console — it lists which ports are open and which paths on the Pi respond, and to what status code.",
+        "Use this list as your starting map, then try the Flag Prober tool or explore a promising path yourself."
+      ]
+    },
+    {
+      icon: "🚩", tag: "medium", title: "CTF · Flag Prober",
+      desc: "Automatically tries every known vulnerability pattern against the target Pi and prints any flag it finds.",
+      manifest: "firmware/ctf-flag-prober/manifest.json", wifiForm: true, needsTargetIp: true, category: "ctf",
+      steps: [
+        "Click Install below and flash the board.",
+        "Connect it to the event Wi-Fi and type the target Pi's IP address (ask your instructor) below, then click Send to Board.",
+        "Open Console — it tries each vulnerability in turn and prints [FOUND] with the flag when one works.",
+        "Copy any found flag into the scoreboard page on the Pi's screen to score your team's points."
+      ]
     }
   ];
 
   (function(){
-    var grid = document.getElementById('labGrid');
-    grid.innerHTML = LABS.map(function(lab, i){
+    function cardHTML(lab, i){
       return '' +
         '<div class="card">' +
           '<div class="card-top"><span class="card-icon">' + lab.icon + '</span><span class="tag ' + lab.tag + '">' + (lab.tag === 'easy' ? 'Easy' : 'Medium') + '</span></div>' +
           '<div><h2>' + lab.title + '</h2><p>' + lab.desc + '</p></div>' +
           '<button type="button" class="card-cta" data-lab="' + i + '">View Guide &amp; Flash →</button>' +
         '</div>';
-    }).join('');
+    }
+    function renderGrid(containerId, filterFn){
+      var grid = document.getElementById(containerId);
+      if (!grid) return;
+      grid.innerHTML = LABS.map(function(lab, i){ return filterFn(lab) ? cardHTML(lab, i) : ''; }).join('');
+    }
+    renderGrid('labGrid', function(lab){ return lab.category !== 'ctf'; });
+    renderGrid('ctfGrid', function(lab){ return lab.category === 'ctf'; });
   })();
 
   (function(){
@@ -772,8 +847,10 @@
     var stepsEl = document.getElementById('labModalSteps');
     var installEl = document.getElementById('labModalInstall');
     var wifiForm = document.getElementById('labModalWifiForm');
+    var wifiFormTitle = document.getElementById('wifiFormTitle');
     var wifiSsidInput = document.getElementById('wifiSsidInput');
     var wifiPassInput = document.getElementById('wifiPassInput');
+    var wifiTargetInput = document.getElementById('wifiTargetInput');
     var wifiSendBtn = document.getElementById('wifiSendBtn');
     var wifiFormStatus = document.getElementById('wifiFormStatus');
     var wifiConsole = document.getElementById('wifiConsole');
@@ -783,6 +860,7 @@
     // no need to separately reopen Logs/Console to see the board connect.
     var activeWifiPort = null;
     var activeWifiReader = null;
+    var currentLab = null;
 
     async function closeWifiSerial(){
       if (activeWifiReader) {
@@ -797,6 +875,7 @@
 
     function openLab(lab){
       closeWifiSerial();
+      currentLab = lab;
 
       icon.textContent = lab.icon;
       titleEl.textContent = lab.title;
@@ -810,8 +889,13 @@
       installEl.appendChild(btn);
 
       wifiForm.hidden = !lab.wifiForm;
+      wifiFormTitle.textContent = lab.needsTargetIp
+        ? '📶 Connect the board to the event Wi-Fi'
+        : '📶 Send Wi-Fi credentials to the board';
+      wifiTargetInput.hidden = !lab.needsTargetIp;
       wifiSsidInput.value = '';
       wifiPassInput.value = '';
+      wifiTargetInput.value = '';
       wifiFormStatus.textContent = '';
       wifiConsole.hidden = true;
       wifiConsole.textContent = '';
@@ -825,7 +909,12 @@
     async function sendWifiOverSerial(){
       var ssid = wifiSsidInput.value.trim();
       var pass = wifiPassInput.value;
+      var targetIp = wifiTargetInput.value.trim();
       if (!ssid) { wifiFormStatus.textContent = 'Type a Wi-Fi network name first.'; return; }
+      if (currentLab && currentLab.needsTargetIp && !targetIp) {
+        wifiFormStatus.textContent = 'Type the target IP address first (ask your instructor).';
+        return;
+      }
       if (!('serial' in navigator)) {
         wifiFormStatus.textContent = "This browser doesn't support Web Serial — use Chrome or Edge.";
         return;
@@ -841,8 +930,9 @@
         // give it a moment to reboot back into the sketch before writing.
         wifiFormStatus.textContent = 'Connected — waiting for the board to be ready...';
         await new Promise(function(r){ setTimeout(r, 2000); });
+        var payload = ssid + ',' + pass + (targetIp ? ',' + targetIp : '') + '\n';
         var writer = port.writable.getWriter();
-        await writer.write(new TextEncoder().encode(ssid + ',' + pass + '\n'));
+        await writer.write(new TextEncoder().encode(payload));
         writer.releaseLock();
         wifiFormStatus.textContent = 'Sent! Watching for the board\'s reply below:';
 
@@ -877,10 +967,14 @@
       closeWifiSerial();
     }
 
-    document.getElementById('labGrid').addEventListener('click', function(e){
-      var btn = e.target.closest('.card-cta');
-      if (!btn) return;
-      openLab(LABS[parseInt(btn.getAttribute('data-lab'), 10)]);
+    ['labGrid', 'ctfGrid'].forEach(function(gridId){
+      var grid = document.getElementById(gridId);
+      if (!grid) return;
+      grid.addEventListener('click', function(e){
+        var btn = e.target.closest('.card-cta');
+        if (!btn) return;
+        openLab(LABS[parseInt(btn.getAttribute('data-lab'), 10)]);
+      });
     });
 
     // This is a docked side panel, not a blocking modal: it has no backdrop,

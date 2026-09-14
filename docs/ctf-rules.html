@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Classroom CTF — Student Rules</title>
+<style>
+  :root{color-scheme:dark}
+  body{
+    background:#05070a; color:#dbe7ef; margin:0; padding:32px 20px 60px;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    max-width:720px; margin-inline:auto;
+  }
+  h1{font-size:24px; color:#8fb3c9; margin:0 0 6px}
+  .sub{color:#6b7d8c; font-size:13px; margin-bottom:28px}
+  h2{font-size:16px; color:#c9b8fb; margin:32px 0 10px; border-bottom:1px solid #24313d; padding-bottom:6px}
+  p{line-height:1.6; font-size:14px; color:#c3ced8}
+  table{width:100%; border-collapse:collapse; margin:12px 0; font-size:13.5px}
+  th,td{text-align:left; padding:9px 10px; border-bottom:1px solid #1e2a35}
+  th{color:#7d93a3; font-size:11px; text-transform:uppercase; letter-spacing:.03em}
+  .cat-list{list-style:none; margin:0; padding:0}
+  .cat-list li{
+    padding:10px 12px; margin-bottom:8px; border-radius:8px;
+    background:#131a22; border:1px solid #24313d; font-size:13.5px;
+  }
+  .cat-list b{color:#eef4f8}
+  .cat-list span{color:#8fa3b3}
+  .warn{
+    background:#241d0b; border:1px solid #4a3a10; color:#ffd98a;
+    border-radius:10px; padding:14px 16px; font-size:13px; line-height:1.6; margin:16px 0;
+  }
+  .print-btn{
+    display:inline-block; margin-top:20px; padding:10px 18px; border-radius:8px;
+    background:#38bdf8; color:#04121a; font-weight:700; font-size:13px;
+    text-decoration:none; border:none; cursor:pointer;
+  }
+  @media print{
+    body{background:#fff; color:#111}
+    h1,h2{color:#111}
+    .sub,p{color:#333}
+    .cat-list li{background:#f5f5f5; border-color:#ccc}
+    .cat-list span{color:#555}
+    .warn{background:#fff8e6; border-color:#e0c56b; color:#5a4600}
+    .print-btn{display:none}
+    th{color:#555}
+  }
+</style>
+</head>
+<body>
+  <h1>🚩 Classroom CTF — Student Rules</h1>
+  <div class="sub">Read this before the round starts. Full technical design: see <code>CLASSROOM-CTF-EVENT-en.md</code> in the repo.</div>
+
+  <p>Your class is running a live Capture-the-Flag round against a Raspberry Pi projected on the classroom screen. Find hidden "flags" hiding behind real, common web-server vulnerabilities — then, if you can, patch the vulnerability you found so no one else can score from it.</p>
+
+  <h2>Before you start</h2>
+  <div class="warn">
+    ⚠️ Only ever target the instructor's Raspberry Pi on the event Wi-Fi. Never point any tool at another student's device, the school network, or anything you don't have explicit permission to test. This follows the same Code of Conduct as every other lab in this project.
+  </div>
+
+  <h2>How to play</h2>
+  <ol>
+    <li>Join the event Wi-Fi network (ask your instructor for the name/password and the Pi's IP address).</li>
+    <li>Flash an ESP32 with the <b>CTF Recon Scanner</b> or <b>CTF Flag Prober</b> tool from the flashing site — no coding needed, just connect and send the Wi-Fi info + target IP.</li>
+    <li>Watch the Console for anything that starts with <code>[FOUND]</code> — that's a captured flag.</li>
+    <li>Type your team name and the flag into the scoreboard page on the projected screen.</li>
+    <li>Optional: patch the vulnerability you found (one click on the scoreboard) to lock it and earn a bigger bonus.</li>
+  </ol>
+
+  <h2>Scoring</h2>
+  <table>
+    <tr><th>Action</th><th>Points</th></tr>
+    <tr><td>First team to find a flag</td><td>100</td></tr>
+    <tr><td>Another team also finds the same (still-open) flag</td><td>50</td></tr>
+    <tr><td>Patch a vulnerability your team found</td><td>+75 (and it's closed to everyone else)</td></tr>
+  </table>
+
+  <h2>What you're looking for</h2>
+  <p>Seven vulnerability categories are planted on the Pi. No spoilers here — just the categories, so you know what skill each one is testing:</p>
+  <ul class="cat-list">
+    <li><b>#1 — Default credentials.</b> <span>Some accounts still use the password they shipped with.</span></li>
+    <li><b>#2 — Hidden pages aren't secret.</b> <span>Not being linked anywhere isn't the same as being protected.</span></li>
+    <li><b>#3 — Broken access control (IDOR).</b> <span>What happens if you just... change an ID in the URL?</span></li>
+    <li><b>#4 — Leftover files.</b> <span>Developers sometimes forget to remove things from a live server.</span></li>
+    <li><b>#5 — Oversharing errors.</b> <span>A crash message can say more than it should.</span></li>
+    <li><b>#6 — Missing authentication.</b> <span>Not every sensitive action checks who's asking.</span></li>
+    <li><b>#7 — Untrusted input (hardest).</b> <span>What a service does with input it never expected.</span></li>
+  </ul>
+
+  <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+</body>
+</html>
