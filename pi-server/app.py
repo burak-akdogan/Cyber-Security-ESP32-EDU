@@ -79,17 +79,19 @@ LOGIN_HTML = """
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    # .replace() on purpose, not .format() -- the CSS above is full of literal
+    # {curly braces}, which .format() would misread as format fields.
     if request.method == "GET":
-        return LOGIN_HTML.format(message="")
+        return LOGIN_HTML.replace("{message}", "")
     if patched[1]:
-        return LOGIN_HTML.format(
-            message='<div class="msg">Login temporarily disabled by an administrator.</div>'
+        return LOGIN_HTML.replace(
+            "{message}", '<div class="msg">Login temporarily disabled by an administrator.</div>'
         ), 503
     u = request.form.get("username", "")
     p = request.form.get("password", "")
     if u == "admin" and p == "admin":
         return f"<pre>Welcome, admin!\n{FLAGS[1]}</pre>"
-    return LOGIN_HTML.format(message='<div class="msg">Invalid credentials.</div>'), 401
+    return LOGIN_HTML.replace("{message}", '<div class="msg">Invalid credentials.</div>'), 401
 
 
 # ---------------------------------------------------------------------------
@@ -220,13 +222,15 @@ def patch(vid):
         return jsonify(error="already patched"), 400
     name = request.form.get("team", "").strip()
     patched[vid] = True
-    t = teams.get(name)
-    if t and vid in t["found"]:
+    # Patching earns the bonus on its own -- a pure-defense team never
+    # "finds" a flag themselves, so the bonus can't depend on that.
+    if name:
+        t = get_team(name)
         t["score"] += 75
         t["patched"].add(vid)
         log(f"{name} PATCHED #{vid} ({VULN_NAMES[vid]}) [+75]")
     else:
-        log(f"#{vid} ({VULN_NAMES[vid]}) patched")
+        log(f"#{vid} ({VULN_NAMES[vid]}) patched (no team credited)")
     return jsonify(status="patched")
 
 
@@ -274,42 +278,95 @@ DASHBOARD_HTML = """
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Classroom CTF -- Live Scoreboard</title>
 <style>
-  :root{color-scheme:dark}
-  body{background:#05070a;color:#dbe7ef;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;padding:24px}
-  h1{font-size:22px;color:#8fb3c9;margin:0 0 4px}
-  .sub{color:#6b7d8c;font-size:13px;margin-bottom:24px}
-  .grid{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;align-items:start}
-  @media (max-width:900px){.grid{grid-template-columns:1fr}}
-  .panel{background:#131a22;border:1px solid #24313d;border-radius:12px;padding:18px}
-  .panel h2{font-size:14px;color:#9fb2c0;text-transform:uppercase;letter-spacing:.04em;margin:0 0 14px}
-  table{width:100%;border-collapse:collapse;font-size:14px}
-  th,td{text-align:left;padding:8px 6px;border-bottom:1px solid #1e2a35}
-  th{color:#7d93a3;font-weight:600;font-size:11px;text-transform:uppercase}
-  .score{color:#4ade80;font-weight:700}
-  .vuln-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #1e2a35;gap:10px}
-  .vuln-name{font-size:13px}
-  .badge{font-family:ui-monospace,monospace;font-size:10.5px;padding:3px 8px;border-radius:999px;white-space:nowrap}
-  .badge.open{background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.35)}
-  .badge.patched{background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.35)}
-  .events{font-family:ui-monospace,monospace;font-size:12px;color:#9fb2c0;max-height:260px;overflow-y:auto}
-  .events div{padding:4px 0;border-bottom:1px solid #1e2a35}
-  .submit-box{margin-top:18px}
-  .submit-box input{width:100%;margin-bottom:8px;padding:9px 10px;border-radius:8px;border:1px solid #24313d;background:#0f151c;color:#e2e8f0;box-sizing:border-box;font-size:13px}
-  .submit-box button{width:100%;padding:10px;border:0;border-radius:8px;background:#38bdf8;color:#04121a;font-weight:700;cursor:pointer}
-  .result{margin-top:10px;font-size:13px}
-  .result.ok{color:#4ade80}
-  .result.bad{color:#f87171}
-</style></head><body>
-  <h1>&#128681; Classroom CTF &mdash; Live Scoreboard</h1>
-  <div class="sub">Find flags, submit them below. First team to find = 100 pts, later finders = 50 pts, patching a vulnerability you found = +75 pts.</div>
+  :root{
+    color-scheme:dark;
+    --bg:#05070a; --panel:#11161d; --panel-border:#232f3b;
+    --ink:#e4edf4; --ink-dim:#8fa3b3; --ink-dimmer:#5f7385;
+    --accent:#38bdf8; --accent-2:#a78bfa; --good:#4ade80; --bad:#f87171; --warn:#fbbf24;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--bg); color:var(--ink); margin:0; padding:22px clamp(14px,3vw,32px) 40px;
+    font-family:-apple-system,"Segoe UI",Roboto,system-ui,sans-serif;
+  }
+  .topbar{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:6px}
+  h1{font-size:clamp(20px,3vw,26px); margin:0; display:flex; align-items:center; gap:10px}
+  h1 .flag-emoji{filter:drop-shadow(0 0 10px rgba(56,189,248,.5))}
+  .live{display:flex; align-items:center; gap:7px; font-size:12px; color:var(--ink-dim); font-family:ui-monospace,Consolas,monospace}
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--good); box-shadow:0 0 8px var(--good); animation:pulse 1.6s ease-in-out infinite}
+  .dot.lost{background:var(--bad); box-shadow:0 0 8px var(--bad); animation:none}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .sub{color:var(--ink-dim); font-size:13px; line-height:1.6; margin:6px 0 24px; max-width:760px}
+  .sub b{color:var(--ink)}
 
-  <div class="grid">
+  .layout{display:grid; grid-template-columns:1.2fr 1fr; gap:18px; align-items:start}
+  @media (max-width:880px){.layout{grid-template-columns:1fr}}
+
+  .panel{background:var(--panel); border:1px solid var(--panel-border); border-radius:14px; padding:18px}
+  .panel h2{font-size:12px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.06em; margin:0 0 14px; font-weight:700}
+
+  .board-row{
+    display:flex; align-items:center; gap:12px; padding:10px 8px; border-radius:10px;
+    border-bottom:1px solid var(--panel-border);
+  }
+  .board-row:last-child{border-bottom:none}
+  .rank{
+    width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:800; background:#0c1319; color:var(--ink-dim); flex-shrink:0;
+  }
+  .rank.r1{background:rgba(251,191,36,.15); color:var(--warn)}
+  .rank.r2{background:rgba(148,163,184,.18); color:#cbd5e1}
+  .rank.r3{background:rgba(217,119,6,.15); color:#d97706}
+  .board-name{flex:1; font-size:14px; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .board-meta{font-size:11px; color:var(--ink-dimmer); font-family:ui-monospace,Consolas,monospace}
+  .board-score{font-size:18px; font-weight:800; color:var(--good); font-variant-numeric:tabular-nums; min-width:56px; text-align:right}
+  .empty-msg{color:var(--ink-dimmer); font-size:13px; padding:8px 0}
+
+  .vuln-row{display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--panel-border)}
+  .vuln-row:last-child{border-bottom:none}
+  .vuln-id{font-family:ui-monospace,Consolas,monospace; font-size:11px; color:var(--ink-dimmer); width:20px; flex-shrink:0}
+  .vuln-name{font-size:13px; flex:1; min-width:0}
+  .badge{font-family:ui-monospace,Consolas,monospace; font-size:10px; font-weight:700; letter-spacing:.03em; padding:3px 9px; border-radius:999px; white-space:nowrap}
+  .badge.open{background:rgba(248,113,113,.12); color:var(--bad); border:1px solid rgba(248,113,113,.35)}
+  .badge.patched{background:rgba(74,222,128,.12); color:var(--good); border:1px solid rgba(74,222,128,.35)}
+  .patch-btn{
+    padding:5px 12px; border-radius:7px; border:1px solid rgba(56,189,248,.4);
+    background:rgba(56,189,248,.1); color:var(--accent); cursor:pointer; font-size:11px; font-weight:600;
+  }
+  .patch-btn:hover{background:rgba(56,189,248,.2)}
+
+  .events{font-family:ui-monospace,Consolas,monospace; font-size:12px; color:var(--ink-dim); max-height:220px; overflow-y:auto}
+  .events div{padding:5px 0; border-bottom:1px solid var(--panel-border)}
+  .events div:last-child{border-bottom:none}
+
+  .submit-box{margin-top:20px; padding-top:18px; border-top:1px solid var(--panel-border)}
+  .submit-box input{
+    width:100%; margin-bottom:9px; padding:10px 12px; border-radius:9px; border:1px solid var(--panel-border);
+    background:#0b1015; color:var(--ink); box-sizing:border-box; font-size:13.5px;
+  }
+  .submit-box input:focus{outline:none; border-color:var(--accent)}
+  .submit-box button{
+    width:100%; padding:11px; border:0; border-radius:9px; font-weight:700; font-size:13.5px; cursor:pointer;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#04121a;
+  }
+  .result{margin-top:10px; font-size:13px; min-height:18px}
+  .result.ok{color:var(--good)}
+  .result.bad{color:var(--bad)}
+</style></head><body>
+
+  <div class="topbar">
+    <h1><span class="flag-emoji">&#128681;</span> Classroom CTF &mdash; Live Scoreboard</h1>
+    <div class="live"><span class="dot" id="liveDot"></span><span id="liveText">live</span></div>
+  </div>
+  <div class="sub">Find flags, submit them below. <b>First</b> team to find a flag = 100 pts, later finders = 50 pts. Patching a vulnerability = <b>+75</b> pts (finding it first isn't required) &mdash; and it locks that flag for everyone.</div>
+
+  <div class="layout">
     <div class="panel">
       <h2>Scoreboard</h2>
-      <table id="board"><thead><tr><th>Team</th><th>Score</th><th>Flags</th><th>Patched</th></tr></thead><tbody></tbody></table>
+      <div id="board"><div class="empty-msg">No teams yet -- be the first to submit a flag.</div></div>
 
       <div class="submit-box">
-        <h2 style="margin-top:22px">Submit a flag</h2>
+        <h2 style="margin-bottom:10px">Submit a flag</h2>
         <input id="teamName" placeholder="Team name">
         <input id="flagCode" placeholder="FLAG{...}">
         <button onclick="submitFlag()">Submit</button>
@@ -321,39 +378,61 @@ DASHBOARD_HTML = """
       <h2>Vulnerability status</h2>
       <div id="vulns"></div>
       <h2 style="margin-top:20px">Live feed</h2>
-      <div class="events" id="events"></div>
+      <div class="events" id="events"><div style="color:#5f7385">Nothing yet</div></div>
     </div>
   </div>
 
 <script>
-async function refresh(){
+function medal(rank){
+  if(rank === 0) return 'r1';
+  if(rank === 1) return 'r2';
+  if(rank === 2) return 'r3';
+  return '';
+}
+
+async function refreshNow(){
   try{
-    const r = await fetch('/api/state'); const d = await r.json();
-    const tbody = document.querySelector('#board tbody');
-    tbody.innerHTML = d.board.map(row =>
-      `<tr><td>${row.team}</td><td class="score">${row.score}</td><td>${row.found}</td><td>${row.patched}</td></tr>`
-    ).join('') || '<tr><td colspan="4" style="color:#6b7d8c">No teams yet</td></tr>';
+    const r = await fetch('/api/state');
+    if(!r.ok) throw new Error('bad response');
+    const d = await r.json();
+    document.getElementById('liveDot').className = 'dot';
+    document.getElementById('liveText').textContent = 'live';
+
+    const board = document.getElementById('board');
+    board.innerHTML = d.board.length ? d.board.map((row, i) => `
+      <div class="board-row">
+        <span class="rank ${medal(i)}">${i+1}</span>
+        <span class="board-name">${row.team}</span>
+        <span class="board-meta">${row.found} found &middot; ${row.patched} patched</span>
+        <span class="board-score">${row.score}</span>
+      </div>
+    `).join('') : '<div class="empty-msg">No teams yet -- be the first to submit a flag.</div>';
 
     document.getElementById('vulns').innerHTML = d.vulns.map(v => `
       <div class="vuln-row">
-        <span class="vuln-name">#${v.id} ${v.name}</span>
+        <span class="vuln-id">#${v.id}</span>
+        <span class="vuln-name">${v.name}</span>
         <span class="badge ${v.patched ? 'patched' : 'open'}">${v.patched ? 'PATCHED' : 'OPEN'}</span>
-        ${v.patched ? '' : `<button onclick="patchVuln(${v.id})" style="padding:5px 10px;border-radius:6px;border:1px solid #24313d;background:#0f151c;color:#38bdf8;cursor:pointer;font-size:11px">Patch</button>`}
+        ${v.patched ? '' : `<button class="patch-btn" onclick="patchVuln(${v.id})">Patch</button>`}
       </div>
     `).join('');
 
-    document.getElementById('events').innerHTML = d.events.map(e =>
-      `<div>[${e.t}] ${e.msg}</div>`
-    ).join('') || '<div style="color:#6b7d8c">Nothing yet</div>';
-  }catch(e){}
-  setTimeout(refresh, 2000);
+    document.getElementById('events').innerHTML = d.events.length
+      ? d.events.map(e => `<div>[${e.t}] ${e.msg}</div>`).join('')
+      : '<div style="color:#5f7385">Nothing yet</div>';
+  }catch(e){
+    document.getElementById('liveDot').className = 'dot lost';
+    document.getElementById('liveText').textContent = 'connection lost -- retrying...';
+  }
 }
+setInterval(refreshNow, 2000);
 
 async function submitFlag(){
   const team = document.getElementById('teamName').value.trim();
   const flag = document.getElementById('flagCode').value.trim();
   const box = document.getElementById('submitResult');
   if(!team){ box.textContent = 'Type your team name first.'; box.className = 'result bad'; return; }
+  if(!flag){ box.textContent = 'Paste a flag code first.'; box.className = 'result bad'; return; }
   const body = new URLSearchParams({team, flag});
   const r = await fetch('/submit', {method:'POST', body});
   const d = await r.json();
@@ -365,18 +444,21 @@ async function submitFlag(){
     box.textContent = 'Your team already found this one.';
     box.className = 'result bad';
   } else {
-    box.textContent = 'Not a valid flag.';
+    box.textContent = 'Not a valid flag -- check for typos.';
     box.className = 'result bad';
   }
+  refreshNow();
 }
 
 async function patchVuln(id){
   const team = document.getElementById('teamName').value.trim();
+  if(!team){ alert('Type your team name in the box first, then Patch.'); return; }
   const body = new URLSearchParams({team});
   await fetch(`/patch/${id}`, {method:'POST', body});
+  refreshNow();
 }
 
-refresh();
+refreshNow();
 </script>
 </body></html>
 """

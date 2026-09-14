@@ -4,6 +4,8 @@
 > 🚨 **FOR EDUCATIONAL PURPOSES ONLY.** This exercise is provided solely to teach cybersecurity awareness in a supervised classroom setting, with informed consent from everyone involved. Do not use these techniques against real people, devices, or networks without explicit authorization — doing so may violate computer-misuse, wiretapping, or other laws in your jurisdiction.
 
 > **Status: built.** The Pi-side app, both ESP32 tools, the site section, and the student rules page all exist now (see §10). Run [pi-server/README.md](pi-server/README.md) before your first round.
+>
+> **Running an actual session?** Use [CLASSROOM-CTF-TEACHER-GUIDE-en.md](CLASSROOM-CTF-TEACHER-GUIDE-en.md) (full steps + answer key + troubleshooting) and hand students [CLASSROOM-CTF-STUDENT-GUIDE-en.md](CLASSROOM-CTF-STUDENT-GUIDE-en.md) (no answers). This file is the design rationale behind both.
 
 ---
 
@@ -80,7 +82,7 @@ A single page, shown on the projector, with three jobs:
 |---|---|
 | First team to find a flag | 100 |
 | Later team also finds the same (still-open) flag | 50 |
-| Team that patches a flag they found | +75 bonus (and that flag is now closed to everyone) |
+| Team that patches a vulnerability (finding it first isn't required) | +75 (and it's now closed to everyone else) |
 
 ---
 
