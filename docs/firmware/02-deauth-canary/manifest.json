@@ -1,6 +1,6 @@
 {
   "name": "02-deauth-canary",
-  "version": "2026.09.11-b2dbf75",
+  "version": "2026.09.14-d2033f9",
   "new_install_prompt_erase": true,
   "builds": [
     {

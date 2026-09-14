@@ -1,5 +1,5 @@
 {
-  "name": "05-invisible-ink-receiver",
+  "name": "ctf-flag-prober",
   "version": "2026.09.14-d2033f9",
   "new_install_prompt_erase": true,
   "builds": [
