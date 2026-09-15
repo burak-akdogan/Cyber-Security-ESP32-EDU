@@ -377,19 +377,8 @@ DASHBOARD_HTML = """
   @keyframes scanMove{ 0%{transform:translateY(0)} 100%{transform:translateY(350%)} }
 
   .topbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:6px}
-  .holo-badge{
-    width:42px; height:42px; border-radius:50%; flex-shrink:0;
-    display:flex; align-items:center; justify-content:center; font-size:19px;
-    background:conic-gradient(from 0deg, rgba(0,255,157,.18), rgba(0,255,242,.3), rgba(255,32,121,.18), rgba(0,255,157,.18));
-    border:1px solid rgba(0,255,242,.5);
-    filter:drop-shadow(0 0 8px rgba(0,255,242,.6));
-    animation:holoSpin 5s linear infinite, holoFlicker 2.6s ease-in-out infinite;
-  }
-  @keyframes holoSpin{ to{transform:rotate(360deg)} }
-  @keyframes holoFlicker{ 0%,44%,49%,72%,100%{opacity:1} 46%{opacity:.35} 74%{opacity:.5} }
 
   h1{font-size:clamp(18px,2.6vw,25px); margin:0; display:flex; align-items:center; gap:10px; position:relative}
-  h1 .flag-emoji{filter:drop-shadow(0 0 10px rgba(0,255,157,.6))}
   .glitch{ position:relative; color:var(--ink) }
   .glitch::before, .glitch::after{
     content:attr(data-text); position:absolute; left:24px; top:0; width:100%; height:100%;
@@ -491,8 +480,7 @@ DASHBOARD_HTML = """
   <div class="scanlines"></div>
 
   <div class="topbar">
-    <div class="holo-badge">&#129399;</div>
-    <h1 class="glitch" data-text="Classroom CTF -- Live Scoreboard"><span class="flag-emoji">&#128681;</span>&nbsp;Classroom CTF -- Live Scoreboard</h1>
+    <h1 class="glitch" data-text="Classroom CTF -- Live Scoreboard">Classroom CTF -- Live Scoreboard</h1>
     <div class="live"><span class="dot" id="liveDot"></span><span id="liveText">live</span></div>
   </div>
   <div class="sub">Find flags, submit them below. <b>First</b> team to find a flag = 100 pts, later finders = 50 pts. Patching a vulnerability = <b>+75</b> pts (finding it first isn't required) &mdash; and it locks that flag for everyone.</div>
