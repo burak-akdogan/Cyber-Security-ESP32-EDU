@@ -486,48 +486,6 @@ DASHBOARD_HTML = """
     font-family:inherit;
   }
   .ddos-btn.active{ border-color:rgba(0,255,157,.5); background:rgba(0,255,157,.12); color:var(--good) }
-
-  .attack-control{
-    margin:0 0 20px; padding:16px 20px; border-radius:14px;
-    border:1px solid rgba(255,32,121,.35); background:rgba(10,2,7,.9);
-    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
-  }
-  .attack-left{ display:flex; align-items:center; gap:16px; flex-wrap:wrap }
-  .attack-label{ font-size:12.5px; font-weight:800; color:var(--accent-2); letter-spacing:.05em; text-transform:uppercase }
-  .attack-timer{ font-size:26px; font-weight:800; color:var(--good); text-shadow:0 0 14px rgba(0,255,157,.6); font-variant-numeric:tabular-nums }
-  .attack-buttons{ display:flex; gap:10px; flex-wrap:wrap }
-  .launch-btn{
-    padding:12px 22px; border-radius:10px; border:1px solid rgba(255,32,121,.6);
-    background:linear-gradient(135deg,var(--accent-2),#8a1cff); color:#fff; font-weight:800; font-size:12.5px;
-    cursor:pointer; letter-spacing:.04em; box-shadow:0 0 22px rgba(255,32,121,.35); font-family:inherit;
-  }
-  .launch-btn:hover{ box-shadow:0 0 32px rgba(255,32,121,.55) }
-  .stop-timer-btn{
-    padding:12px 18px; border-radius:10px; border:1px solid var(--panel-border);
-    background:rgba(255,255,255,.04); color:var(--ink-dim); font-weight:700; font-size:12px; cursor:pointer; font-family:inherit;
-  }
-
-  .countdown-overlay{
-    position:fixed; inset:0; z-index:100;
-    background:rgba(1,4,3,.96);
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-  }
-  .countdown-start-btn{
-    margin-top:24px; padding:16px 40px; border-radius:12px; border:1px solid rgba(0,255,157,.6);
-    background:linear-gradient(135deg,var(--good),var(--accent)); color:#02120d; font-weight:900; font-size:18px;
-    letter-spacing:.08em; cursor:pointer; font-family:inherit; box-shadow:0 0 26px rgba(0,255,157,.4);
-  }
-  .countdown-number{
-    font-size:min(42vw,260px); font-weight:900; line-height:1; color:var(--good);
-    text-shadow:0 0 50px rgba(0,255,157,.85), 0 0 120px rgba(0,255,157,.4);
-    animation:countdownPop .55s ease-out;
-  }
-  .countdown-number.go{
-    color:var(--accent-2); font-size:min(18vw,120px); letter-spacing:.05em;
-    text-shadow:0 0 50px rgba(255,32,121,.9), 0 0 130px rgba(255,32,121,.5);
-  }
-  @keyframes countdownPop{ 0%{transform:scale(.3); opacity:0} 60%{transform:scale(1.15); opacity:1} 100%{transform:scale(1)} }
-  .countdown-sub{ margin-top:18px; letter-spacing:.35em; color:var(--accent); font-size:13px; text-transform:uppercase }
 </style></head><body>
 
   <div class="scanlines"></div>
@@ -538,17 +496,6 @@ DASHBOARD_HTML = """
     <div class="live"><span class="dot" id="liveDot"></span><span id="liveText">live</span></div>
   </div>
   <div class="sub">Find flags, submit them below. <b>First</b> team to find a flag = 100 pts, later finders = 50 pts. Patching a vulnerability = <b>+75</b> pts (finding it first isn't required) &mdash; and it locks that flag for everyone.</div>
-
-  <div class="attack-control" id="attackControl">
-    <div class="attack-left">
-      <span class="attack-label">&#9876;&#65039; Attack Coordination</span>
-      <span class="attack-timer" id="attackTimer">00:00</span>
-    </div>
-    <div class="attack-buttons">
-      <button class="launch-btn" id="launchBtn" onclick="launchCountdown()">&#128640; LAUNCH ATTACK COUNTDOWN</button>
-      <button class="stop-timer-btn" id="stopTimerBtn" onclick="stopTimer()" hidden>&#9209; Stop Timer</button>
-    </div>
-  </div>
 
   <div class="traffic-banner" id="trafficBanner">
     <div class="traffic-left">
@@ -580,91 +527,7 @@ DASHBOARD_HTML = """
     </div>
   </div>
 
-  <div class="countdown-overlay" id="countdownOverlay" hidden>
-    <div class="countdown-number" id="countdownNumber" style="display:none">3</div>
-    <div class="countdown-sub" id="countdownSub">Everyone ready?</div>
-    <button class="countdown-start-btn" id="countdownStartBtn" onclick="beginCountdownSequence()">START</button>
-    <button class="countdown-start-btn" id="countdownCloseBtn" onclick="finishCountdown()" hidden>ATTACK! (tap to continue)</button>
-  </div>
-
 <script>
-var attackSeconds = 0;
-var timerInterval = null;
-
-function formatTime(s){
-  var m = Math.floor(s / 60);
-  var sec = s % 60;
-  return (m < 10 ? '0' + m : m) + ':' + (sec < 10 ? '0' + sec : sec);
-}
-
-function startTimer(){
-  attackSeconds = 0;
-  document.getElementById('attackTimer').textContent = formatTime(0);
-  document.getElementById('stopTimerBtn').hidden = false;
-  clearInterval(timerInterval);
-  timerInterval = setInterval(function(){
-    attackSeconds++;
-    document.getElementById('attackTimer').textContent = formatTime(attackSeconds);
-  }, 1000);
-}
-
-function stopTimer(){
-  clearInterval(timerInterval);
-  document.getElementById('stopTimerBtn').hidden = true;
-}
-
-function launchCountdown(){
-  var overlay = document.getElementById('countdownOverlay');
-  var numberEl = document.getElementById('countdownNumber');
-  var subEl = document.getElementById('countdownSub');
-  var startBtn = document.getElementById('countdownStartBtn');
-  var closeBtn = document.getElementById('countdownCloseBtn');
-  numberEl.style.display = 'none';
-  subEl.textContent = 'Everyone ready?';
-  startBtn.hidden = false;
-  closeBtn.hidden = true;
-  overlay.hidden = false;
-}
-
-// The 3-2-1 part advances on its own timer. The final "GO" step waits for a
-// tap instead of another timer -- that removes any dependency on a second
-// timer firing, which is what got stuck before.
-function beginCountdownSequence(){
-  var numberEl = document.getElementById('countdownNumber');
-  var subEl = document.getElementById('countdownSub');
-  var startBtn = document.getElementById('countdownStartBtn');
-  var closeBtn = document.getElementById('countdownCloseBtn');
-  startBtn.hidden = true;
-  numberEl.style.display = '';
-
-  var sequence = ['3', '2', '1'];
-  var i = 0;
-  function step(){
-    if (i >= sequence.length) {
-      numberEl.textContent = 'GO';
-      numberEl.className = 'countdown-number go';
-      subEl.textContent = 'ATTACK!';
-      closeBtn.hidden = false;
-      return;
-    }
-    var val = sequence[i];
-    numberEl.textContent = val;
-    numberEl.className = 'countdown-number';
-    numberEl.style.animation = 'none';
-    void numberEl.offsetWidth;
-    numberEl.style.animation = '';
-    subEl.textContent = 'GET READY';
-    i++;
-    setTimeout(step, 900);
-  }
-  step();
-}
-
-function finishCountdown(){
-  document.getElementById('countdownOverlay').hidden = true;
-  startTimer();
-}
-
 function medal(rank){
   if(rank === 0) return 'r1';
   if(rank === 1) return 'r2';
