@@ -19,6 +19,19 @@ void printStatus() {
   Serial.printf("  sent=%lu  ok=%lu  failed=%lu\n", sent, ok, failed);
 }
 
+// Forgives common copy/paste mistakes in the Target IP field, e.g.
+// "http://10.42.0.1/" or "10.42.0.1:8080" -- both would otherwise get
+// mangled when we build "http://" + targetIP + ":8080/" below.
+String sanitizeTargetIP(String ip) {
+  ip.trim();
+  int schemeEnd = ip.indexOf("://");
+  if (schemeEnd >= 0) ip = ip.substring(schemeEnd + 3);
+  int slash = ip.indexOf('/');
+  if (slash >= 0) ip = ip.substring(0, slash);
+  if (ip.endsWith(":8080")) ip = ip.substring(0, ip.length() - 5);
+  return ip;
+}
+
 void connectToWifi() {
   Serial.printf("\nConnecting to \"%s\" ...\n", targetSsid.c_str());
   WiFi.mode(WIFI_STA);
@@ -75,8 +88,7 @@ void loop() {
       if (c1 > 0 && c2 > c1) {
         targetSsid = line.substring(0, c1);
         targetPass = line.substring(c1 + 1, c2);
-        targetIP = line.substring(c2 + 1);
-        targetIP.trim();
+        targetIP = sanitizeTargetIP(line.substring(c2 + 1));
         connectToWifi();
       } else if (line.length() > 0) {
         Serial.println("Expected format: SSID,PASSWORD,TARGET_IP");
