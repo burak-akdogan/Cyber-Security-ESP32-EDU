@@ -363,18 +363,18 @@ DASHBOARD_HTML = """
     font-family:Consolas,"Courier New",ui-monospace,monospace;
     position:relative; overflow-x:hidden;
   }
-  canvas#matrixRain{ position:fixed; inset:0; z-index:-2; opacity:.5 }
   .scanlines{
     position:fixed; inset:0; pointer-events:none; z-index:5;
     background:repeating-linear-gradient(0deg, rgba(0,255,157,.05) 0px, rgba(0,255,157,.05) 1px, transparent 1px, transparent 3px);
     mix-blend-mode:overlay;
   }
   .scanlines::after{
-    content:''; position:fixed; left:0; right:0; height:40%;
+    content:''; position:fixed; top:-40%; left:0; right:0; height:40%;
     background:linear-gradient(rgba(0,255,242,.05), transparent 80%);
     animation:scanMove 6s linear infinite;
+    will-change:transform;
   }
-  @keyframes scanMove{ 0%{top:-40%} 100%{top:100%} }
+  @keyframes scanMove{ 0%{transform:translateY(0)} 100%{transform:translateY(350%)} }
 
   .topbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:6px}
   .holo-badge{
@@ -530,7 +530,6 @@ DASHBOARD_HTML = """
   .countdown-sub{ margin-top:18px; letter-spacing:.35em; color:var(--accent); font-size:13px; text-transform:uppercase }
 </style></head><body>
 
-  <canvas id="matrixRain"></canvas>
   <div class="scanlines"></div>
 
   <div class="topbar">
@@ -588,36 +587,6 @@ DASHBOARD_HTML = """
   </div>
 
 <script>
-(function(){
-  var canvas = document.getElementById('matrixRain');
-  var ctx = canvas.getContext('2d');
-  function resize(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-  resize();
-  window.addEventListener('resize', resize);
-  var chars = 'アイウエオカキクケコサシスセソタチツテト0123456789ABCDEF$#@%&';
-  var fontSize = 16;
-  var drops = [];
-  function setup(){
-    var cols = Math.floor(canvas.width / fontSize);
-    drops = new Array(cols).fill(1);
-  }
-  setup();
-  window.addEventListener('resize', setup);
-  function draw(){
-    ctx.fillStyle = 'rgba(2,5,4,0.08)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#00ff9d';
-    ctx.font = fontSize + 'px monospace';
-    for (var i = 0; i < drops.length; i++) {
-      var ch = chars[Math.floor(Math.random() * chars.length)];
-      ctx.fillText(ch, i * fontSize, drops[i] * fontSize);
-      if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
-      drops[i]++;
-    }
-  }
-  setInterval(draw, 90);
-})();
-
 var attackSeconds = 0;
 var timerInterval = null;
 
