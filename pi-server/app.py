@@ -584,6 +584,7 @@ DASHBOARD_HTML = """
     <div class="countdown-number" id="countdownNumber" style="display:none">3</div>
     <div class="countdown-sub" id="countdownSub">Everyone ready?</div>
     <button class="countdown-start-btn" id="countdownStartBtn" onclick="beginCountdownSequence()">START</button>
+    <button class="countdown-start-btn" id="countdownCloseBtn" onclick="finishCountdown()" hidden>ATTACK! (tap to continue)</button>
   </div>
 
 <script>
@@ -617,39 +618,51 @@ function launchCountdown(){
   var numberEl = document.getElementById('countdownNumber');
   var subEl = document.getElementById('countdownSub');
   var startBtn = document.getElementById('countdownStartBtn');
+  var closeBtn = document.getElementById('countdownCloseBtn');
   numberEl.style.display = 'none';
   subEl.textContent = 'Everyone ready?';
   startBtn.hidden = false;
+  closeBtn.hidden = true;
   overlay.hidden = false;
 }
 
+// The 3-2-1 part advances on its own timer. The final "GO" step waits for a
+// tap instead of another timer -- that removes any dependency on a second
+// timer firing, which is what got stuck before.
 function beginCountdownSequence(){
-  var overlay = document.getElementById('countdownOverlay');
   var numberEl = document.getElementById('countdownNumber');
   var subEl = document.getElementById('countdownSub');
   var startBtn = document.getElementById('countdownStartBtn');
+  var closeBtn = document.getElementById('countdownCloseBtn');
   startBtn.hidden = true;
   numberEl.style.display = '';
 
-  var sequence = ['3', '2', '1', 'GO'];
+  var sequence = ['3', '2', '1'];
   var i = 0;
   function step(){
     if (i >= sequence.length) {
-      overlay.hidden = true;
-      startTimer();
+      numberEl.textContent = 'GO';
+      numberEl.className = 'countdown-number go';
+      subEl.textContent = 'ATTACK!';
+      closeBtn.hidden = false;
       return;
     }
     var val = sequence[i];
     numberEl.textContent = val;
-    numberEl.className = 'countdown-number' + (val === 'GO' ? ' go' : '');
+    numberEl.className = 'countdown-number';
     numberEl.style.animation = 'none';
     void numberEl.offsetWidth;
     numberEl.style.animation = '';
-    subEl.textContent = val === 'GO' ? 'ATTACK!' : 'GET READY';
+    subEl.textContent = 'GET READY';
     i++;
-    setTimeout(step, val === 'GO' ? 700 : 900);
+    setTimeout(step, 900);
   }
   step();
+}
+
+function finishCountdown(){
+  document.getElementById('countdownOverlay').hidden = true;
+  startTimer();
 }
 
 function medal(rank){
