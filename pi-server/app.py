@@ -10,6 +10,7 @@
 from flask import Flask, request, jsonify
 import time
 import collections
+import random
 
 app = Flask(__name__)
 
@@ -70,7 +71,7 @@ blocked_count = 0
 # patching, admin reset) is never counted or blocked -- only the public "/"
 # page is the attack surface here. This guarantees the instructor can always
 # see the dashboard and flip protection on/off, even mid-flood.
-_RATE_LIMIT_EXEMPT_PREFIXES = ("/api/state", "/api/ddos-protection", "/admin/", "/submit", "/patch/")
+_RATE_LIMIT_EXEMPT_PREFIXES = ("/api/state", "/api/ddos-protection", "/admin/", "/submit", "/patch/", "/game/")
 
 
 @app.before_request
@@ -359,6 +360,317 @@ def reset_all():
 
 
 # ---------------------------------------------------------------------------
+# Cyber Town -- a Mafia / Town-of-Salem style social deduction game, also
+# hosted on this Pi. Fully separate state and routes from the CTF above (own
+# player dict, own phase machine) so nothing here can break the flag-hunting
+# round, or vice versa.
+#
+# Each ESP32 is one anonymous player, identified only by its Wi-Fi MAC
+# address. Roles (attacker / defender / civilian) are assigned secretly by
+# the instructor and never sent to any device other than the player it
+# belongs to -- the projected dashboard only ever reveals a player's role
+# once that player is eliminated, or the game is over.
+# ---------------------------------------------------------------------------
+GAME_ATTACKER = "attacker"
+GAME_DEFENDER = "defender"
+GAME_CIVILIAN = "civilian"
+GAME_ROLE_LABEL = {GAME_ATTACKER: "Attacker", GAME_DEFENDER: "Defender", GAME_CIVILIAN: "Civilian"}
+
+game_players = {}        # mac -> {"num", "name", "role", "alive"}
+game_next_num = 1
+game_phase = "lobby"     # lobby | night | day_vote | game_over
+game_round = 0
+game_winner = None       # None | "town" | "attackers" | "instructor"
+game_night_actions = {}  # mac -> {"type": "attack"|"defend", "target": num}
+game_votes = {}          # mac -> target num
+game_events = []
+
+
+def game_log(msg):
+    game_events.insert(0, {"t": time.strftime("%H:%M:%S"), "msg": msg})
+    del game_events[50:]
+
+
+def game_player_by_num(num):
+    for p in game_players.values():
+        if p["num"] == num:
+            return p
+    return None
+
+
+def game_check_winner():
+    alive_attackers = sum(1 for p in game_players.values() if p["alive"] and p["role"] == GAME_ATTACKER)
+    alive_town = sum(1 for p in game_players.values() if p["alive"] and p["role"] != GAME_ATTACKER)
+    if alive_attackers == 0:
+        return "town"
+    if alive_attackers >= alive_town:
+        return "attackers"
+    return None
+
+
+@app.route("/game/register", methods=["POST"])
+def game_register():
+    global game_next_num
+    mac = request.form.get("mac", "").strip()
+    if not mac:
+        return jsonify(error="missing mac"), 400
+    if mac not in game_players:
+        num = game_next_num
+        game_next_num += 1
+        game_players[mac] = {"num": num, "name": f"Player {num}", "role": None, "alive": True}
+        game_log(f"Player {num} joined the lobby")
+    p = game_players[mac]
+    return jsonify(num=p["num"], name=p["name"], phase=game_phase)
+
+
+@app.route("/game/name", methods=["POST"])
+def game_set_name():
+    mac = request.form.get("mac", "").strip()
+    name = request.form.get("name", "").strip()[:24]
+    if mac not in game_players or not name:
+        return jsonify(error="not registered or empty name"), 400
+    game_players[mac]["name"] = name
+    game_log(f"Player {game_players[mac]['num']} is now known as {name}")
+    return jsonify(status="ok")
+
+
+@app.route("/game/state")
+def game_state():
+    mac = request.args.get("mac", "").strip()
+    p = game_players.get(mac)
+    if not p:
+        return jsonify(error="not registered"), 404
+    result = {
+        "phase": game_phase,
+        "round": game_round,
+        "num": p["num"],
+        "name": p["name"],
+        "alive": p["alive"],
+        "role": GAME_ROLE_LABEL.get(p["role"]) if p["role"] else None,
+    }
+    if game_phase == "game_over":
+        result["winner"] = game_winner
+    return jsonify(result)
+
+
+@app.route("/game/state-all")
+def game_state_all():
+    roster = []
+    for p in sorted(game_players.values(), key=lambda x: x["num"]):
+        reveal = (not p["alive"]) or game_phase == "game_over"
+        roster.append({
+            "num": p["num"],
+            "name": p["name"],
+            "alive": p["alive"],
+            "role": GAME_ROLE_LABEL.get(p["role"]) if (reveal and p["role"]) else None,
+        })
+    alive_attackers = sum(1 for p in game_players.values() if p["alive"] and p["role"] == GAME_ATTACKER)
+    alive_town = sum(1 for p in game_players.values() if p["alive"] and p["role"] != GAME_ATTACKER)
+    return jsonify(
+        phase=game_phase, round=game_round, winner=game_winner,
+        roster=roster, events=game_events,
+        aliveAttackers=alive_attackers, aliveTown=alive_town,
+    )
+
+
+@app.route("/game/start", methods=["POST"])
+def game_start():
+    global game_phase, game_round
+    if game_phase != "lobby":
+        return jsonify(error="game already in progress"), 400
+    players = list(game_players.values())
+    if len(players) < 3:
+        return jsonify(error="need at least 3 players"), 400
+
+    try:
+        num_attackers = int(request.form.get("attackers", 0))
+        num_defenders = int(request.form.get("defenders", 0))
+    except ValueError:
+        return jsonify(error="attackers/defenders must be numbers"), 400
+    if num_attackers < 1 or num_defenders < 0 or num_attackers + num_defenders >= len(players):
+        return jsonify(error="role counts don't leave room for civilians"), 400
+
+    random.shuffle(players)
+    for p in players[:num_attackers]:
+        p["role"] = GAME_ATTACKER
+    for p in players[num_attackers:num_attackers + num_defenders]:
+        p["role"] = GAME_DEFENDER
+    for p in players[num_attackers + num_defenders:]:
+        p["role"] = GAME_CIVILIAN
+
+    game_phase = "night"
+    game_round = 1
+    game_night_actions.clear()
+    game_votes.clear()
+    game_log(f"--- Game started: {num_attackers} attacker(s), {num_defenders} defender(s), "
+             f"{len(players) - num_attackers - num_defenders} civilian(s) ---")
+    game_log("Night 1 has begun")
+    return jsonify(status="started")
+
+
+@app.route("/game/attack", methods=["POST"])
+def game_attack():
+    mac = request.form.get("mac", "").strip()
+    p = game_players.get(mac)
+    if not p or not p["alive"] or p["role"] != GAME_ATTACKER or game_phase != "night":
+        return jsonify(error="not allowed right now"), 400
+    try:
+        target = int(request.form.get("target", ""))
+    except ValueError:
+        return jsonify(error="bad target"), 400
+    game_night_actions[mac] = {"type": "attack", "target": target}
+    return jsonify(status="ok")
+
+
+@app.route("/game/defend", methods=["POST"])
+def game_defend():
+    mac = request.form.get("mac", "").strip()
+    p = game_players.get(mac)
+    if not p or not p["alive"] or p["role"] != GAME_DEFENDER or game_phase != "night":
+        return jsonify(error="not allowed right now"), 400
+    try:
+        target = int(request.form.get("target", ""))
+    except ValueError:
+        return jsonify(error="bad target"), 400
+    game_night_actions[mac] = {"type": "defend", "target": target}
+    return jsonify(status="ok")
+
+
+@app.route("/game/resolve-night", methods=["POST"])
+def game_resolve_night():
+    global game_phase, game_winner
+    if game_phase != "night":
+        return jsonify(error="not night"), 400
+
+    attacked = set()
+    defended = set()
+    for mac, action in game_night_actions.items():
+        p = game_players.get(mac)
+        if not p or not p["alive"]:
+            continue
+        if action["type"] == "attack" and p["role"] == GAME_ATTACKER:
+            attacked.add(action["target"])
+        elif action["type"] == "defend" and p["role"] == GAME_DEFENDER:
+            defended.add(action["target"])
+
+    for target_num in attacked:
+        target = game_player_by_num(target_num)
+        if not target or not target["alive"]:
+            continue
+        if target_num in defended:
+            game_log(f"An attack on Player {target_num} ({target['name']}) was blocked!")
+        else:
+            target["alive"] = False
+            game_log(f"Player {target_num} ({target['name']}) was eliminated overnight! "
+                     f"Role: {GAME_ROLE_LABEL[target['role']]}")
+
+    game_night_actions.clear()
+    winner = game_check_winner()
+    if winner:
+        game_phase = "game_over"
+        game_winner = winner
+        game_log(f"--- GAME OVER: {'Town' if winner == 'town' else 'Attackers'} win! ---")
+    else:
+        game_phase = "day_vote"
+        game_log("Day has broken -- discuss, then vote.")
+    return jsonify(status="ok", phase=game_phase)
+
+
+@app.route("/game/vote", methods=["POST"])
+def game_vote():
+    mac = request.form.get("mac", "").strip()
+    p = game_players.get(mac)
+    if not p or not p["alive"] or game_phase != "day_vote":
+        return jsonify(error="not allowed right now"), 400
+    try:
+        target = int(request.form.get("target", ""))
+    except ValueError:
+        return jsonify(error="bad target"), 400
+    game_votes[mac] = target
+    return jsonify(status="ok")
+
+
+@app.route("/game/resolve-vote", methods=["POST"])
+def game_resolve_vote():
+    global game_phase, game_round, game_winner
+    if game_phase != "day_vote":
+        return jsonify(error="not voting"), 400
+
+    tally = collections.Counter(game_votes.values())
+    game_votes.clear()
+    if tally:
+        top_count = max(tally.values())
+        top_targets = [num for num, count in tally.items() if count == top_count]
+        if len(top_targets) == 1:
+            target = game_player_by_num(top_targets[0])
+            if target and target["alive"]:
+                target["alive"] = False
+                game_log(f"Player {target['num']} ({target['name']}) was voted out! "
+                         f"Role: {GAME_ROLE_LABEL[target['role']]}")
+        else:
+            game_log("Vote tied -- no one is eliminated.")
+    else:
+        game_log("No votes cast -- no one is eliminated.")
+
+    winner = game_check_winner()
+    if winner:
+        game_phase = "game_over"
+        game_winner = winner
+        game_log(f"--- GAME OVER: {'Town' if winner == 'town' else 'Attackers'} win! ---")
+    else:
+        game_round += 1
+        game_phase = "night"
+        game_night_actions.clear()
+        game_log(f"Night {game_round} has begun")
+    return jsonify(status="ok", phase=game_phase)
+
+
+@app.route("/game/new-round", methods=["POST"])
+def game_new_round():
+    global game_phase, game_round, game_winner
+    if game_phase != "game_over":
+        return jsonify(error="game still in progress"), 400
+    for p in game_players.values():
+        p["role"] = None
+        p["alive"] = True
+    game_night_actions.clear()
+    game_votes.clear()
+    game_phase = "lobby"
+    game_round = 0
+    game_winner = None
+    game_log("--- New round -- back to the lobby, same players ---")
+    return jsonify(status="ok")
+
+
+@app.route("/game/force-end", methods=["POST"])
+def game_force_end():
+    global game_phase, game_winner
+    if request.form.get("pin", "") != "1234":
+        return jsonify(error="wrong pin"), 403
+    game_phase = "game_over"
+    game_winner = "instructor"
+    game_log("--- Game ended early by instructor -- roles revealed ---")
+    return jsonify(status="ok")
+
+
+@app.route("/game/reset", methods=["POST"])
+def game_reset():
+    global game_phase, game_round, game_winner, game_next_num
+    if request.form.get("pin", "") != "1234":
+        return jsonify(error="wrong pin"), 403
+    game_players.clear()
+    game_next_num = 1
+    game_night_actions.clear()
+    game_votes.clear()
+    game_events.clear()
+    game_phase = "lobby"
+    game_round = 0
+    game_winner = None
+    game_log("--- Cyber Town reset by instructor ---")
+    return jsonify(status="reset")
+
+
+# ---------------------------------------------------------------------------
 # The projected dashboard
 # ---------------------------------------------------------------------------
 DASHBOARD_HTML = """
@@ -392,7 +704,12 @@ DASHBOARD_HTML = """
   }
   @keyframes scanMove{ 0%{transform:translateY(0)} 100%{transform:translateY(350%)} }
 
-  .topbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:6px}
+  .topbar{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:14px; margin-bottom:6px}
+  .topbar-spacer{visibility:hidden}
+  @media (max-width:700px){
+    .topbar{display:flex; flex-direction:column; text-align:center}
+    .live{justify-self:auto}
+  }
 
   h1{font-size:clamp(18px,2.6vw,25px); margin:0; display:flex; align-items:center; gap:10px; position:relative}
   .glitch{ position:relative; color:var(--ink) }
@@ -405,7 +722,7 @@ DASHBOARD_HTML = """
   @keyframes glitchTop{ 0%,92%,100%{transform:translate(0,0)} 93%{transform:translate(-2px,-1px)} 95%{transform:translate(2px,1px)} 97%{transform:translate(-1px,1px)} }
   @keyframes glitchBot{ 0%,90%,100%{transform:translate(0,0)} 91%{transform:translate(2px,1px)} 94%{transform:translate(-2px,-1px)} 96%{transform:translate(1px,-1px)} }
 
-  .live{display:flex; align-items:center; gap:7px; font-size:12px; color:var(--ink-dim); margin-left:auto}
+  .live{display:flex; align-items:center; gap:7px; font-size:12px; color:var(--ink-dim); justify-self:end}
   .dot{width:8px; height:8px; border-radius:50%; background:var(--good); box-shadow:0 0 8px var(--good); animation:pulse 1.6s ease-in-out infinite}
   .dot.lost{background:var(--bad); box-shadow:0 0 8px var(--bad); animation:none}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
@@ -513,16 +830,76 @@ DASHBOARD_HTML = """
   .attacker-ip{ font-weight:700; color:var(--ink) }
   .attacker-stats{ color:var(--ink-dim); font-variant-numeric:tabular-nums; white-space:nowrap }
   .attackers-empty{ color:var(--ink-dimmer); font-size:12.5px; padding:0 18px 14px }
+
+  .tabs{ display:flex; gap:8px; margin:14px 0 18px }
+  .tab-btn{
+    padding:9px 18px; border-radius:9px 9px 0 0; border:1px solid var(--panel-border); border-bottom:none;
+    background:rgba(255,255,255,.03); color:var(--ink-dim); font-family:inherit; font-weight:700; font-size:12.5px;
+    cursor:pointer; letter-spacing:.03em;
+  }
+  .tab-btn.active{ background:var(--panel); color:var(--accent); border-color:var(--accent) }
+
+  .game-phase-banner{
+    margin:0 0 18px; padding:18px 22px; border-radius:14px; text-align:center;
+    border:1px solid var(--panel-border); background:var(--panel);
+  }
+  .game-phase-banner.night{ background:rgba(0,255,242,.06); border-color:rgba(0,255,242,.4) }
+  .game-phase-banner.day_vote{ background:rgba(240,255,92,.08); border-color:rgba(240,255,92,.45) }
+  .game-phase-banner.game_over.town{ background:rgba(0,255,157,.1); border-color:rgba(0,255,157,.6) }
+  .game-phase-banner.game_over.attackers{ background:rgba(255,59,107,.1); border-color:rgba(255,59,107,.6) }
+  .game-phase-title{ font-size:22px; font-weight:900; letter-spacing:.03em; margin-bottom:4px }
+  .game-phase-sub{ font-size:12.5px; color:var(--ink-dim) }
+
+  .game-lobby-players{ display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 }
+  .game-lobby-chip{
+    padding:7px 14px; border-radius:20px; background:rgba(0,255,242,.08); border:1px solid rgba(0,255,242,.35);
+    font-size:12.5px; font-weight:700;
+  }
+  .game-start-form{ display:flex; gap:10px; align-items:end; flex-wrap:wrap; margin-top:16px }
+  .game-start-form label{ display:flex; flex-direction:column; gap:5px; font-size:11.5px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.04em }
+  .game-start-form input{
+    width:80px; padding:9px 10px; border-radius:8px; border:1px solid var(--panel-border);
+    background:rgba(255,255,255,.04); color:var(--ink); font-family:inherit; font-size:14px;
+  }
+  .game-btn{
+    padding:11px 20px; border-radius:9px; border:1px solid rgba(0,255,157,.5);
+    background:linear-gradient(135deg,var(--good),var(--accent)); color:#02120d; font-weight:800; font-size:12.5px;
+    cursor:pointer; font-family:inherit;
+  }
+  .game-btn.danger{ border-color:rgba(255,59,107,.5); color:var(--bad); background:rgba(255,59,107,.08) }
+
+  .game-roster{ display:grid; grid-template-columns:repeat(auto-fill, minmax(140px,1fr)); gap:10px; margin:16px 0 }
+  .game-player-card{
+    padding:12px; border-radius:10px; border:1px solid var(--panel-border); background:rgba(255,255,255,.03);
+    text-align:center;
+  }
+  .game-player-card.dead{ opacity:.55; border-color:rgba(255,59,107,.4) }
+  .game-player-num{ font-size:11px; color:var(--ink-dimmer) }
+  .game-player-name{ font-weight:800; font-size:13.5px; margin:3px 0 }
+  .game-player-status{ font-size:16px }
+  .game-player-role{ font-size:11px; margin-top:3px; font-weight:700 }
+  .game-player-role.attacker{ color:var(--bad) }
+  .game-player-role.defender{ color:var(--accent) }
+  .game-player-role.civilian{ color:var(--ink-dim) }
+
+  .game-admin-row{ display:flex; gap:10px; margin-top:18px; flex-wrap:wrap }
 </style></head><body>
 
   <div class="scanlines"></div>
 
   <div class="topbar">
+    <div class="topbar-spacer"><span class="dot"></span><span>live</span></div>
     <h1 class="glitch" data-text="Classroom CTF -- Live Scoreboard">Classroom CTF -- Live Scoreboard</h1>
     <div class="live"><span class="dot" id="liveDot"></span><span id="liveText">live</span></div>
   </div>
   <div class="sub">Find flags, submit them below. <b>First</b> team to find a flag = 100 pts, later finders = 50 pts. Patching a vulnerability = <b>+75</b> pts (finding it first isn't required) &mdash; and it locks that flag for everyone.</div>
 
+  <div class="tabs">
+    <button class="tab-btn active" id="tabCtfBtn" onclick="showTab('ctf')">CTF Scoreboard</button>
+    <button class="tab-btn" id="tabGameBtn" onclick="showTab('game')">&#127919; Cyber Town</button>
+  </div>
+
+  <div id="ctfTab">
   <div class="traffic-banner" id="trafficBanner">
     <div class="traffic-left">
       <span class="traffic-status" id="trafficStatusText">&#128994; Normal traffic</span>
@@ -560,8 +937,51 @@ DASHBOARD_HTML = """
       <div class="events" id="events"><div style="color:#4d7a63">Nothing yet</div></div>
     </div>
   </div>
+  </div>
+
+  <div id="gameTab" hidden>
+    <div class="game-phase-banner" id="gamePhaseBanner">
+      <div class="game-phase-title" id="gamePhaseTitle">Waiting for players...</div>
+      <div class="game-phase-sub" id="gamePhaseSub">Flash a board with the Cyber Town firmware and connect it to the event Wi-Fi.</div>
+    </div>
+
+    <div id="gameLobbyBox">
+      <div class="game-lobby-players" id="gameLobbyPlayers"></div>
+      <div class="game-start-form">
+        <label>Attackers <input type="number" id="gameAttackersInput" value="2" min="1"></label>
+        <label>Defenders <input type="number" id="gameDefendersInput" value="2" min="0"></label>
+        <button class="game-btn" onclick="startGame()">&#9654; Start Game</button>
+      </div>
+    </div>
+
+    <div class="game-roster" id="gameRoster"></div>
+
+    <div class="game-admin-row" id="gameInProgressControls" hidden>
+      <button class="game-btn" id="gameResolveNightBtn" onclick="resolveNight()" hidden>&#127769; Resolve Night &rarr;</button>
+      <button class="game-btn" id="gameResolveVoteBtn" onclick="resolveVote()" hidden>&#9728;&#65039; Resolve Vote &rarr;</button>
+    </div>
+
+    <div class="game-admin-row" id="gameOverControls" hidden>
+      <button class="game-btn" onclick="newGameRound()">&#8635; New Game (same players)</button>
+    </div>
+
+    <div class="game-admin-row">
+      <button class="game-btn danger" onclick="forceEndGame()">&#9209; Force End &amp; Reveal</button>
+      <button class="game-btn danger" onclick="resetGame()">&#128465;&#65039; Reset Cyber Town</button>
+    </div>
+
+    <h2 style="margin-top:22px">Live feed</h2>
+    <div class="events" id="gameEvents"><div style="color:#4d7a63">Nothing yet</div></div>
+  </div>
 
 <script>
+function showTab(name){
+  document.getElementById('ctfTab').hidden = name !== 'ctf';
+  document.getElementById('gameTab').hidden = name !== 'game';
+  document.getElementById('tabCtfBtn').classList.toggle('active', name === 'ctf');
+  document.getElementById('tabGameBtn').classList.toggle('active', name === 'game');
+}
+
 var attackersExpanded = true;
 
 function toggleAttackers(){
@@ -682,7 +1102,105 @@ async function patchVuln(id){
   refreshNow();
 }
 
+async function refreshGame(){
+  try{
+    const r = await fetch('/game/state-all');
+    if(!r.ok) throw new Error('bad response');
+    const d = await r.json();
+
+    const banner = document.getElementById('gamePhaseBanner');
+    const title = document.getElementById('gamePhaseTitle');
+    const sub = document.getElementById('gamePhaseSub');
+    banner.className = 'game-phase-banner ' + d.phase + (d.phase === 'game_over' ? ' ' + d.winner : '');
+
+    document.getElementById('gameLobbyBox').hidden = d.phase !== 'lobby';
+    document.getElementById('gameInProgressControls').hidden = (d.phase === 'lobby' || d.phase === 'game_over');
+    document.getElementById('gameOverControls').hidden = d.phase !== 'game_over';
+    document.getElementById('gameResolveNightBtn').hidden = d.phase !== 'night';
+    document.getElementById('gameResolveVoteBtn').hidden = d.phase !== 'day_vote';
+
+    if(d.phase === 'lobby'){
+      title.textContent = `Waiting for players... (${d.roster.length} connected)`;
+      sub.textContent = 'Flash a board with the Cyber Town firmware and connect it to the event Wi-Fi -- it appears below automatically.';
+      document.getElementById('gameLobbyPlayers').innerHTML = d.roster.length
+        ? d.roster.map(p => `<span class="game-lobby-chip">#${p.num} ${p.name}</span>`).join('')
+        : '<span style="color:var(--ink-dimmer)">No boards connected yet.</span>';
+    } else if(d.phase === 'night'){
+      title.textContent = `\U0001F319 NIGHT -- Round ${d.round}`;
+      sub.textContent = `${d.aliveAttackers} attacker(s) and ${d.aliveTown} defender/civilian(s) still alive. Attackers and defenders are choosing targets on their own boards.`;
+    } else if(d.phase === 'day_vote'){
+      title.textContent = `☀️ DAY -- VOTE -- Round ${d.round}`;
+      sub.textContent = 'Discuss out loud, then everyone votes on their own board for who to eliminate.';
+    } else if(d.phase === 'game_over'){
+      title.textContent = d.winner === 'attackers' ? '\U0001F534 ATTACKERS WIN!'
+        : d.winner === 'town' ? '\U0001F535 TOWN WINS!'
+        : 'GAME OVER -- ended by instructor';
+      sub.textContent = 'All roles are now revealed below.';
+    }
+
+    document.getElementById('gameRoster').innerHTML = d.roster.map(p => `
+      <div class="game-player-card ${p.alive ? '' : 'dead'}">
+        <div class="game-player-num">#${p.num}</div>
+        <div class="game-player-name">${p.name}</div>
+        <div class="game-player-status">${p.alive ? '\U0001F7E2' : '\U0001F480'}</div>
+        ${p.role ? `<div class="game-player-role ${p.role.toLowerCase()}">${p.role}</div>` : ''}
+      </div>
+    `).join('');
+
+    document.getElementById('gameEvents').innerHTML = d.events.length
+      ? d.events.map(e => `<div>[${e.t}] ${e.msg}</div>`).join('')
+      : '<div style="color:#5f7385">Nothing yet</div>';
+  }catch(e){
+    // the CTF tab's refreshNow() already reports a lost connection -- avoid duplicate UI noise here
+  }
+}
+setInterval(refreshGame, 2000);
+
+async function startGame(){
+  const attackers = document.getElementById('gameAttackersInput').value;
+  const defenders = document.getElementById('gameDefendersInput').value;
+  const body = new URLSearchParams({attackers, defenders});
+  const r = await fetch('/game/start', {method:'POST', body});
+  const d = await r.json();
+  if(!r.ok){ alert(d.error || 'Could not start the game.'); return; }
+  refreshGame();
+}
+
+async function resolveNight(){
+  await fetch('/game/resolve-night', {method:'POST'});
+  refreshGame();
+}
+
+async function resolveVote(){
+  await fetch('/game/resolve-vote', {method:'POST'});
+  refreshGame();
+}
+
+async function newGameRound(){
+  await fetch('/game/new-round', {method:'POST'});
+  refreshGame();
+}
+
+async function forceEndGame(){
+  const pin = prompt('Instructor PIN to end the game and reveal all roles:');
+  if(pin === null) return;
+  const body = new URLSearchParams({pin});
+  const r = await fetch('/game/force-end', {method:'POST', body});
+  if(!r.ok){ alert('Wrong PIN, or no game in progress.'); return; }
+  refreshGame();
+}
+
+async function resetGame(){
+  const pin = prompt('Instructor PIN to fully reset Cyber Town (removes all connected players):');
+  if(pin === null) return;
+  const body = new URLSearchParams({pin});
+  const r = await fetch('/game/reset', {method:'POST', body});
+  if(!r.ok){ alert('Wrong PIN.'); return; }
+  refreshGame();
+}
+
 refreshNow();
+refreshGame();
 </script>
 </body></html>
 """

@@ -496,9 +496,10 @@
         </div>
       </div>
       <p class="ctf-desc">
-        Run a live round against a Raspberry Pi projected on the classroom screen. These two
-        tools connect over the event Wi-Fi to help you find — and later patch — real, intentionally
-        planted vulnerabilities. No coding required. See
+        Live, whole-class events run against a Raspberry Pi projected on the classroom screen —
+        find and patch real, intentionally planted vulnerabilities, run a volume-attack demo, or
+        play a social-deduction game with secret roles. All tools connect over the event Wi-Fi.
+        No coding required. See
         <a href="https://github.com/burak-akdogan/Cyber-Security-ESP32-EDU/blob/main/CLASSROOM-CTF-EVENT-en.md" target="_blank" rel="noopener">the full event design</a>
         for setup and scoring.
       </p>
@@ -798,6 +799,19 @@
         "Open Console and type <code>start</code> in the box underneath to begin flooding — the board sends requests to the Pi's dashboard as fast as it can, forever, until you tell it to stop.",
         "Watch the <b>Pi's own screen</b>, not this console — that's where the live traffic meter and \"UNDER ATTACK\" banner appear once enough boards are flooding at once.",
         "Type <code>stop</code> to pause. Only run this when your instructor says it's time for the DDoS demo — it's a separate activity from flag-hunting."
+      ]
+    },
+    {
+      icon: "🎯", tag: "medium", title: "Cyber Town",
+      desc: "A Mafia / Town-of-Salem style social deduction game — every board gets a secret role, played live on the Pi's screen.",
+      manifest: "firmware/cyber-town/manifest.json", wifiForm: true, needsTargetIp: true, category: "ctf",
+      steps: [
+        "Click Install below and flash the board.",
+        "Connect it to the event Wi-Fi and type the target Pi's IP address (ask your instructor) below, then click Send to Board.",
+        "Open Console — it registers you as an anonymous player and asks for a display name. Type one and press Enter (or just press Enter to keep the default).",
+        "Wait for the instructor to start the game on the Pi's screen. Once it starts, your secret role (Attacker / Defender / Civilian) appears in the console — <b>don't show it to anyone else</b>.",
+        "During Night, Attackers type <code>attack &lt;player number&gt;</code> and Defenders type <code>defend &lt;player number&gt;</code>. During Day, anyone still alive types <code>vote &lt;player number&gt;</code> after the class discusses out loud.",
+        "Watch the <b>Pi's own screen</b> for whose turn it is, who's still alive, and — once the game ends — everyone's real role."
       ]
     }
   ];
