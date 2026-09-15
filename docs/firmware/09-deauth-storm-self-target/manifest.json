@@ -1,6 +1,6 @@
 {
   "name": "09-deauth-storm-self-target",
-  "version": "2026.09.15-a669bb6",
+  "version": "2026.09.15-8824f21",
   "new_install_prompt_erase": true,
   "builds": [
     {
