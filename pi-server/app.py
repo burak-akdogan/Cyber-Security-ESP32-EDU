@@ -62,6 +62,7 @@ RATE_LIMIT_MAX = 15       # max requests per IP per RATE_LIMIT_WINDOW when prote
 
 traffic_times = collections.deque()
 ip_times = collections.defaultdict(collections.deque)
+ip_blocked = collections.defaultdict(int)
 ddos_protection = False
 blocked_count = 0
 
@@ -93,17 +94,31 @@ def _traffic_guard():
             dq.popleft()
         if len(dq) > RATE_LIMIT_MAX:
             blocked_count += 1
+            ip_blocked[ip] += 1
             return jsonify(error="rate limited -- too many requests from this device"), 429
 
 
 def current_traffic():
     now = time.time()
     recent = sum(1 for t in traffic_times if now - t <= TRAFFIC_WINDOW)
+    attackers = []
+    if ddos_protection:
+        ip_cutoff = now - RATE_LIMIT_WINDOW
+        for ip, dq in ip_times.items():
+            while dq and dq[0] < ip_cutoff:
+                dq.popleft()
+            rps = len(dq)
+            blocked = ip_blocked.get(ip, 0)
+            if rps > 0 or blocked > 0:
+                attackers.append({"ip": ip, "rps": rps, "blocked": blocked})
+        attackers.sort(key=lambda a: (-a["rps"], -a["blocked"]))
+        attackers = attackers[:10]
     return {
         "rps": round(recent / TRAFFIC_WINDOW, 1),
         "underAttack": (recent / TRAFFIC_WINDOW) >= ATTACK_THRESHOLD,
         "protection": ddos_protection,
         "blocked": blocked_count,
+        "attackers": attackers,
     }
 
 
@@ -336,6 +351,7 @@ def reset_all():
         patched[k] = False
     traffic_times.clear()
     ip_times.clear()
+    ip_blocked.clear()
     ddos_protection = False
     blocked_count = 0
     log("--- round reset by instructor ---")
@@ -475,6 +491,28 @@ DASHBOARD_HTML = """
     font-family:inherit;
   }
   .ddos-btn.active{ border-color:rgba(0,255,157,.5); background:rgba(0,255,157,.12); color:var(--good) }
+
+  .attackers-panel{
+    margin:0 0 20px; border-radius:14px; overflow:hidden;
+    border:1px solid rgba(255,59,107,.3); background:rgba(10,2,7,.85);
+  }
+  .attackers-toggle{
+    width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:12px 18px; background:transparent; border:none; color:var(--bad);
+    font-family:inherit; font-weight:800; font-size:12.5px; letter-spacing:.04em;
+    text-transform:uppercase; cursor:pointer;
+  }
+  .attackers-count-badge{ color:var(--ink-dim); font-weight:700; text-transform:none; letter-spacing:0; margin-left:6px }
+  .attackers-list{ padding:0 18px 14px; display:flex; flex-direction:column; gap:6px }
+  .attackers-list.collapsed{ display:none }
+  .attacker-row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:8px 12px; border-radius:8px; background:rgba(255,59,107,.08);
+    border:1px solid rgba(255,59,107,.18); font-size:12.5px;
+  }
+  .attacker-ip{ font-weight:700; color:var(--ink) }
+  .attacker-stats{ color:var(--ink-dim); font-variant-numeric:tabular-nums; white-space:nowrap }
+  .attackers-empty{ color:var(--ink-dimmer); font-size:12.5px; padding:0 18px 14px }
 </style></head><body>
 
   <div class="scanlines"></div>
@@ -491,6 +529,14 @@ DASHBOARD_HTML = """
       <span class="traffic-metric"><b id="trafficRps">0</b> req/s &middot; <span id="trafficBlocked">0</span> blocked</span>
     </div>
     <button class="ddos-btn" id="ddosToggleBtn" onclick="toggleDdosProtection()">&#128737;&#65039; Enable DDoS Protection</button>
+  </div>
+
+  <div class="attackers-panel" id="attackersPanel" hidden>
+    <button class="attackers-toggle" id="attackersToggle" onclick="toggleAttackers()">
+      <span>&#9889; Attack Sources <span class="attackers-count-badge" id="attackersCount">0</span></span>
+      <span id="attackersChevron">&#9660;</span>
+    </button>
+    <div class="attackers-list" id="attackersList"></div>
   </div>
 
   <div class="layout">
@@ -516,6 +562,14 @@ DASHBOARD_HTML = """
   </div>
 
 <script>
+var attackersExpanded = true;
+
+function toggleAttackers(){
+  attackersExpanded = !attackersExpanded;
+  document.getElementById('attackersList').classList.toggle('collapsed', !attackersExpanded);
+  document.getElementById('attackersChevron').textContent = attackersExpanded ? '▼' : '▶';
+}
+
 function medal(rank){
   if(rank === 0) return 'r1';
   if(rank === 1) return 'r2';
@@ -567,6 +621,21 @@ async function refreshNow(){
     btn.textContent = t.protection ? '\U0001F6D1 Disable DDoS Protection' : '\U0001F6E1️ Enable DDoS Protection';
     btn.className = 'ddos-btn' + (t.protection ? ' active' : '');
     btn.dataset.enabled = t.protection ? 'true' : 'false';
+
+    const attackersPanel = document.getElementById('attackersPanel');
+    const attackers = t.attackers || [];
+    attackersPanel.hidden = !t.protection;
+    document.getElementById('attackersCount').textContent = attackers.length;
+    const list = document.getElementById('attackersList');
+    list.innerHTML = attackers.length
+      ? attackers.map(a => `
+        <div class="attacker-row">
+          <span class="attacker-ip">${a.ip}</span>
+          <span class="attacker-stats">${a.rps} req/s &middot; ${a.blocked} blocked</span>
+        </div>
+      `).join('')
+      : '<div class="attackers-empty">No active attackers right now.</div>';
+    list.classList.toggle('collapsed', !attackersExpanded);
   }catch(e){
     document.getElementById('liveDot').className = 'dot lost';
     document.getElementById('liveText').textContent = 'connection lost -- retrying...';
