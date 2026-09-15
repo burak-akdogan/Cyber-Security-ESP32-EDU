@@ -1,6 +1,6 @@
 {
   "name": "ctf-flag-prober",
-  "version": "2026.09.14-d2033f9",
+  "version": "2026.09.15-6c1c727",
   "new_install_prompt_erase": true,
   "builds": [
     {
