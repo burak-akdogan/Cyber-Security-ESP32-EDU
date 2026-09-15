@@ -352,7 +352,7 @@ DASHBOARD_HTML = """
 <style>
   :root{
     color-scheme:dark;
-    --bg:#020504; --panel:rgba(5,14,10,.86); --panel-border:rgba(0,255,157,.22);
+    --bg:#020504; --panel:rgba(5,14,10,.94); --panel-border:rgba(0,255,157,.22);
     --ink:#d8fff0; --ink-dim:#7fcbaa; --ink-dimmer:#4d7a63;
     --accent:#00fff2; --accent-2:#ff2079; --good:#00ff9d; --bad:#ff3b6b; --warn:#f0ff5c;
   }
@@ -412,7 +412,7 @@ DASHBOARD_HTML = """
 
   .panel{
     background:var(--panel); border:1px solid var(--panel-border); border-radius:14px; padding:18px;
-    backdrop-filter:blur(6px); box-shadow:0 0 24px rgba(0,255,157,.05), inset 0 0 30px rgba(0,255,157,.02);
+    box-shadow:0 0 24px rgba(0,255,157,.05);
   }
   .panel h2{font-size:12px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.08em; margin:0 0 14px; font-weight:700}
 
@@ -466,7 +466,7 @@ DASHBOARD_HTML = """
 
   .traffic-banner{
     margin:0 0 16px; padding:16px 20px; border-radius:14px;
-    border:1px solid var(--panel-border); background:var(--panel); backdrop-filter:blur(6px);
+    border:1px solid var(--panel-border); background:var(--panel);
     display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
     transition:background .3s, border-color .3s;
   }
@@ -489,7 +489,7 @@ DASHBOARD_HTML = """
 
   .attack-control{
     margin:0 0 20px; padding:16px 20px; border-radius:14px;
-    border:1px solid rgba(255,32,121,.35); background:rgba(20,3,13,.55); backdrop-filter:blur(6px);
+    border:1px solid rgba(255,32,121,.35); background:rgba(10,2,7,.9);
     display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
   }
   .attack-left{ display:flex; align-items:center; gap:16px; flex-wrap:wrap }
@@ -509,8 +509,13 @@ DASHBOARD_HTML = """
 
   .countdown-overlay{
     position:fixed; inset:0; z-index:100;
-    background:rgba(1,4,3,.94); backdrop-filter:blur(5px);
+    background:rgba(1,4,3,.96);
     display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .countdown-start-btn{
+    margin-top:24px; padding:16px 40px; border-radius:12px; border:1px solid rgba(0,255,157,.6);
+    background:linear-gradient(135deg,var(--good),var(--accent)); color:#02120d; font-weight:900; font-size:18px;
+    letter-spacing:.08em; cursor:pointer; font-family:inherit; box-shadow:0 0 26px rgba(0,255,157,.4);
   }
   .countdown-number{
     font-size:min(42vw,260px); font-weight:900; line-height:1; color:var(--good);
@@ -577,8 +582,9 @@ DASHBOARD_HTML = """
   </div>
 
   <div class="countdown-overlay" id="countdownOverlay" hidden>
-    <div class="countdown-number" id="countdownNumber">3</div>
-    <div class="countdown-sub" id="countdownSub">GET READY</div>
+    <div class="countdown-number" id="countdownNumber" style="display:none">3</div>
+    <div class="countdown-sub" id="countdownSub">Everyone ready?</div>
+    <button class="countdown-start-btn" id="countdownStartBtn" onclick="beginCountdownSequence()">START</button>
   </div>
 
 <script>
@@ -609,7 +615,7 @@ DASHBOARD_HTML = """
       drops[i]++;
     }
   }
-  setInterval(draw, 50);
+  setInterval(draw, 90);
 })();
 
 var attackSeconds = 0;
@@ -641,9 +647,23 @@ function launchCountdown(){
   var overlay = document.getElementById('countdownOverlay');
   var numberEl = document.getElementById('countdownNumber');
   var subEl = document.getElementById('countdownSub');
+  var startBtn = document.getElementById('countdownStartBtn');
+  numberEl.style.display = 'none';
+  subEl.textContent = 'Everyone ready?';
+  startBtn.hidden = false;
+  overlay.hidden = false;
+}
+
+function beginCountdownSequence(){
+  var overlay = document.getElementById('countdownOverlay');
+  var numberEl = document.getElementById('countdownNumber');
+  var subEl = document.getElementById('countdownSub');
+  var startBtn = document.getElementById('countdownStartBtn');
+  startBtn.hidden = true;
+  numberEl.style.display = '';
+
   var sequence = ['3', '2', '1', 'GO'];
   var i = 0;
-  overlay.hidden = false;
   function step(){
     if (i >= sequence.length) {
       overlay.hidden = true;
@@ -658,7 +678,7 @@ function launchCountdown(){
     numberEl.style.animation = '';
     subEl.textContent = val === 'GO' ? 'ATTACK!' : 'GET READY';
     i++;
-    setTimeout(step, val === 'GO' ? 700 : 800);
+    setTimeout(step, val === 'GO' ? 700 : 900);
   }
   step();
 }
