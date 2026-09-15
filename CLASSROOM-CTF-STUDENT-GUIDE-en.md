@@ -37,7 +37,7 @@ Scroll down to **"Whole-Class Capture the Flag."** There are two tools:
 | Tool | What it does |
 |---|---|
 | **CTF · Recon Scanner** | Lists what's open on the Pi (ports, pages) — a map, no exploiting |
-| **CTF · Flag Prober** | Automatically tries every known vulnerability and prints any flag it captures |
+| **CTF · Flag Prober** | An interactive console — you type a command to try each challenge yourself, one at a time, as many times as you want |
 
 Start with Recon Scanner if you want to explore first, or go straight to Flag Prober.
 
@@ -47,9 +47,22 @@ Start with Recon Scanner if you want to explore first, or go straight to Flag Pr
 3. Click **Send to Board**, and pick your ESP32's serial port when your browser asks.
 4. Watch the console that appears under the form.
 
-### Step 6 — Read the results
-- Recon Scanner prints a list of ports/paths and status codes.
-- Flag Prober prints `[FOUND] #<n> <vulnerability name>: FLAG{...}` for anything it captured.
+### Step 6 — Try challenges, one command at a time
+- Recon Scanner prints a list of ports/paths and status codes, then it's done.
+- Flag Prober prints a **menu** of 7 challenges and then waits — nothing happens automatically. Type a command into the small box under the console and press Enter:
+
+  | Command | Tries... |
+  |---|---|
+  | `1 user:pass` | Default/weak credentials — e.g. `1 admin:admin`. Search online for common admin/router default passwords and try a few. |
+  | `2 path` | Hidden page — e.g. `2 admin` or `2 hidden`. Search: what page names do admins/developers commonly forget to unlink but never actually protect? |
+  | `3 id` | Broken access control (IDOR) — e.g. `3 2`. Try a few different numbers. |
+  | `4 filename` | Leftover files — e.g. `4 backup.zip`. Search: what filenames/extensions do developers commonly leave behind on a live server? |
+  | `5 a b` | Oversharing errors — e.g. `5 10 0`. Try a few different number pairs, including edge cases. |
+  | `6` | Missing authentication |
+  | `7 payload` | Untrusted input (hardest) — e.g. `7 ;whoami`. What belongs in a "host" field that shouldn't? |
+  | `menu` | Show the list again |
+
+  Read the response after each try, adjust your guess, and try again — as many times as you want. When a response contains a flag, it's marked `>>> FOUND`.
 
 ### Step 7 — Score it
 Go to the scoreboard on the classroom screen (or open `http://<pi-ip>:8080/` yourself on the same Wi-Fi). Type your **team name** and the **flag code**, then submit.
@@ -58,6 +71,50 @@ Go to the scoreboard on the classroom screen (or open `http://<pi-ip>:8080/` you
 On the same scoreboard, each vulnerability has a **Patch** button. Clicking it:
 - Closes that vulnerability for everyone (no one can score from it again)
 - Earns your team a bonus — you don't need to have found the flag yourself to patch it
+
+---
+
+## 2a. Prefer a terminal? You don't need an ESP32 for this
+
+Every vulnerability lives on a normal web server — you can probe it directly
+from a laptop's terminal with `curl`, on the same Wi-Fi, no board required.
+This works side by side with the ESP32 tools; use whichever you like, or both.
+
+**Visiting a page (GET):**
+```bash
+curl http://<pi-ip>:8080/<path>
+```
+Replace `<pi-ip>` with the Pi's address and `<path>` with whatever you're
+exploring or guessing.
+
+**Submitting a form (POST):**
+```bash
+curl -X POST http://<pi-ip>:8080/<path> -d "field1=value1&field2=value2"
+```
+This is how you'd submit something like a login form by hand. Check what
+field names a form actually uses first — `curl` the page (or "View Source"
+in a browser) to see its `<input name="...">` fields before guessing values.
+
+> **Windows:** Git Bash has a real `curl`. PowerShell's `curl` is an alias
+> for `Invoke-WebRequest` — add `-UseBasicParsing` if the output looks odd.
+
+---
+
+## 2b. Bonus activity: DDoS demo (only when your instructor says so)
+
+A third tool, **CTF · DDoS Flood**, is a separate activity from flag-hunting
+— don't run it during the flag round, it'll make the scoreboard sluggish for
+everyone. When your instructor announces it:
+
+1. Flash a board with **CTF · DDoS Flood** and connect it the same way as
+   the other tools (SSID, password, target IP).
+2. In the box under the console, type `start`. Your board will now hammer
+   the Pi's dashboard page with requests as fast as it can, nonstop.
+3. Watch the **Pi's own screen**, not your board's console — a banner and a
+   live requests/second counter appear there once enough boards are
+   flooding at once.
+4. Type `stop` when your instructor says to. Watch what happens when they
+   turn on DDoS protection.
 
 ---
 

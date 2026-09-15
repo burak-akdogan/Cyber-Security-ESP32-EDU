@@ -9,6 +9,7 @@
 
 from flask import Flask, request, jsonify
 import time
+import collections
 
 app = Flask(__name__)
 
@@ -46,6 +47,64 @@ def get_team(name):
 def log(msg):
     events.insert(0, {"t": time.strftime("%H:%M:%S"), "msg": msg})
     del events[50:]
+
+
+# ---------------------------------------------------------------------------
+# Classroom DDoS demo: every request is timestamped so the dashboard can show
+# a live requests/sec figure. When ddos_protection is on, any single IP
+# sending too many requests too fast gets a cheap 429 instead of being
+# processed -- a real, explainable mitigation (per-IP rate limiting).
+# ---------------------------------------------------------------------------
+TRAFFIC_WINDOW = 2.0      # seconds of history used to compute live req/s
+ATTACK_THRESHOLD = 20     # req/s at or above this counts as "under attack"
+RATE_LIMIT_WINDOW = 1.0   # seconds
+RATE_LIMIT_MAX = 15       # max requests per IP per RATE_LIMIT_WINDOW when protection is on
+
+traffic_times = collections.deque()
+ip_times = collections.defaultdict(collections.deque)
+ddos_protection = False
+blocked_count = 0
+
+# Control-plane traffic (the dashboard's own polling, flag submission,
+# patching, admin reset) is never counted or blocked -- only the public "/"
+# page is the attack surface here. This guarantees the instructor can always
+# see the dashboard and flip protection on/off, even mid-flood.
+_RATE_LIMIT_EXEMPT_PREFIXES = ("/api/state", "/api/ddos-protection", "/admin/", "/submit", "/patch/")
+
+
+@app.before_request
+def _traffic_guard():
+    global blocked_count
+    if request.path.startswith(_RATE_LIMIT_EXEMPT_PREFIXES):
+        return
+
+    now = time.time()
+    traffic_times.append(now)
+    cutoff = now - TRAFFIC_WINDOW
+    while traffic_times and traffic_times[0] < cutoff:
+        traffic_times.popleft()
+
+    if ddos_protection:
+        ip = request.remote_addr or "unknown"
+        dq = ip_times[ip]
+        dq.append(now)
+        ip_cutoff = now - RATE_LIMIT_WINDOW
+        while dq and dq[0] < ip_cutoff:
+            dq.popleft()
+        if len(dq) > RATE_LIMIT_MAX:
+            blocked_count += 1
+            return jsonify(error="rate limited -- too many requests from this device"), 429
+
+
+def current_traffic():
+    now = time.time()
+    recent = sum(1 for t in traffic_times if now - t <= TRAFFIC_WINDOW)
+    return {
+        "rps": round(recent / TRAFFIC_WINDOW, 1),
+        "underAttack": (recent / TRAFFIC_WINDOW) >= ATTACK_THRESHOLD,
+        "protection": ddos_protection,
+        "blocked": blocked_count,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -252,7 +311,15 @@ def state():
         {"id": i, "name": VULN_NAMES[i], "patched": patched[i]}
         for i in sorted(FLAGS)
     ]
-    return jsonify(board=board, vulns=vulns, events=events[:15])
+    return jsonify(board=board, vulns=vulns, events=events[:15], traffic=current_traffic())
+
+
+@app.route("/api/ddos-protection", methods=["POST"])
+def toggle_ddos_protection():
+    global ddos_protection
+    ddos_protection = request.form.get("enabled", "") == "true"
+    log(f"DDoS protection {'ENABLED' if ddos_protection else 'disabled'} by instructor")
+    return jsonify(status="ok", protection=ddos_protection)
 
 
 # ---------------------------------------------------------------------------
@@ -260,12 +327,17 @@ def state():
 # ---------------------------------------------------------------------------
 @app.route("/admin/reset-all", methods=["POST"])
 def reset_all():
+    global ddos_protection, blocked_count
     if request.form.get("pin", "") != "1234":
         return jsonify(error="wrong pin"), 403
     teams.clear()
     events.clear()
     for k in patched:
         patched[k] = False
+    traffic_times.clear()
+    ip_times.clear()
+    ddos_protection = False
+    blocked_count = 0
     log("--- round reset by instructor ---")
     return jsonify(status="reset")
 
@@ -352,6 +424,28 @@ DASHBOARD_HTML = """
   .result{margin-top:10px; font-size:13px; min-height:18px}
   .result.ok{color:var(--good)}
   .result.bad{color:var(--bad)}
+
+  .traffic-banner{
+    margin:0 0 20px; padding:16px 20px; border-radius:14px;
+    border:1px solid var(--panel-border); background:var(--panel);
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    transition:background .3s, border-color .3s;
+  }
+  .traffic-banner.attack{
+    background:rgba(248,113,113,.1); border-color:rgba(248,113,113,.5);
+    animation:attackPulse 1s ease-in-out infinite;
+  }
+  @keyframes attackPulse{ 0%,100%{box-shadow:0 0 0 rgba(248,113,113,0)} 50%{box-shadow:0 0 24px rgba(248,113,113,.4)} }
+  .traffic-banner.protected{ background:rgba(74,222,128,.08); border-color:rgba(74,222,128,.4) }
+  .traffic-left{ display:flex; align-items:center; gap:14px; flex-wrap:wrap }
+  .traffic-status{ font-size:15px; font-weight:800; white-space:nowrap }
+  .traffic-metric{ font-family:ui-monospace,Consolas,monospace; font-size:13px; color:var(--ink-dim); white-space:nowrap }
+  .traffic-metric b{ color:var(--ink); font-size:20px }
+  .ddos-btn{
+    padding:9px 16px; border-radius:9px; border:1px solid rgba(56,189,248,.4);
+    background:rgba(56,189,248,.1); color:var(--accent); font-weight:700; font-size:12.5px; cursor:pointer; white-space:nowrap;
+  }
+  .ddos-btn.active{ border-color:rgba(74,222,128,.4); background:rgba(74,222,128,.12); color:var(--good) }
 </style></head><body>
 
   <div class="topbar">
@@ -359,6 +453,14 @@ DASHBOARD_HTML = """
     <div class="live"><span class="dot" id="liveDot"></span><span id="liveText">live</span></div>
   </div>
   <div class="sub">Find flags, submit them below. <b>First</b> team to find a flag = 100 pts, later finders = 50 pts. Patching a vulnerability = <b>+75</b> pts (finding it first isn't required) &mdash; and it locks that flag for everyone.</div>
+
+  <div class="traffic-banner" id="trafficBanner">
+    <div class="traffic-left">
+      <span class="traffic-status" id="trafficStatusText">&#128994; Normal traffic</span>
+      <span class="traffic-metric"><b id="trafficRps">0</b> req/s &middot; <span id="trafficBlocked">0</span> blocked</span>
+    </div>
+    <button class="ddos-btn" id="ddosToggleBtn" onclick="toggleDdosProtection()">&#128737;&#65039; Enable DDoS Protection</button>
+  </div>
 
   <div class="layout">
     <div class="panel">
@@ -420,12 +522,34 @@ async function refreshNow(){
     document.getElementById('events').innerHTML = d.events.length
       ? d.events.map(e => `<div>[${e.t}] ${e.msg}</div>`).join('')
       : '<div style="color:#5f7385">Nothing yet</div>';
+
+    const t = d.traffic;
+    const banner = document.getElementById('trafficBanner');
+    const statusText = document.getElementById('trafficStatusText');
+    document.getElementById('trafficRps').textContent = t.rps;
+    document.getElementById('trafficBlocked').textContent = t.blocked;
+    banner.className = 'traffic-banner' + (t.underAttack ? ' attack' : (t.protection ? ' protected' : ''));
+    statusText.textContent = t.underAttack
+      ? '\U0001F534 UNDER ATTACK'
+      : (t.protection ? '✅ Protected' : '\U0001F7E2 Normal traffic');
+    const btn = document.getElementById('ddosToggleBtn');
+    btn.textContent = t.protection ? '\U0001F6D1 Disable DDoS Protection' : '\U0001F6E1️ Enable DDoS Protection';
+    btn.className = 'ddos-btn' + (t.protection ? ' active' : '');
+    btn.dataset.enabled = t.protection ? 'true' : 'false';
   }catch(e){
     document.getElementById('liveDot').className = 'dot lost';
     document.getElementById('liveText').textContent = 'connection lost -- retrying...';
   }
 }
 setInterval(refreshNow, 2000);
+
+async function toggleDdosProtection(){
+  const btn = document.getElementById('ddosToggleBtn');
+  const enabling = btn.dataset.enabled !== 'true';
+  const body = new URLSearchParams({enabled: enabling ? 'true' : 'false'});
+  await fetch('/api/ddos-protection', {method:'POST', body});
+  refreshNow();
+}
 
 async function submitFlag(){
   const team = document.getElementById('teamName').value.trim();

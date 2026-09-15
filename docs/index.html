@@ -394,6 +394,14 @@
     color:#9ae6b4; font-family:var(--mono); font-size:11px; line-height:1.5;
     max-height:180px; overflow-y:auto; white-space:pre-wrap; word-break:break-word;
   }
+  .wifi-followup{ display:flex; gap:6px; margin-top:8px }
+  .wifi-followup input{
+    flex:1; margin:0; padding:9px 10px; border-radius:8px;
+    border:1px solid var(--panel-border); background:rgba(5,7,10,.5);
+    color:var(--ink); font-family:var(--mono); font-size:12px; box-sizing:border-box;
+  }
+  .wifi-followup input:focus{ outline:none; border-color:var(--accent) }
+  .wifi-followup .wifi-send-btn{ width:auto; padding:9px 14px; flex-shrink:0 }
 
   .lab-steps{ margin:0 0 22px; padding:0; list-style:none; counter-reset:step }
   .lab-steps li{
@@ -654,6 +662,10 @@
       <button type="button" class="wifi-send-btn" id="wifiSendBtn">Send to Board</button>
       <p class="wifi-form-status" id="wifiFormStatus"></p>
       <pre class="wifi-console" id="wifiConsole" hidden></pre>
+      <div class="wifi-followup" id="wifiFollowup" hidden>
+        <input type="text" id="wifiFollowupInput" placeholder="Type a command and press Enter (e.g. 1 admin:admin)" autocomplete="off">
+        <button type="button" class="wifi-send-btn" id="wifiFollowupBtn">Send</button>
+      </div>
     </div>
   </aside>
 
@@ -766,13 +778,26 @@
     },
     {
       icon: "🚩", tag: "medium", title: "CTF · Flag Prober",
-      desc: "Automatically tries every known vulnerability pattern against the target Pi and prints any flag it finds.",
+      desc: "An interactive console for trying each vulnerability against the target Pi yourself — nothing runs automatically.",
       manifest: "firmware/ctf-flag-prober/manifest.json", wifiForm: true, needsTargetIp: true, category: "ctf",
       steps: [
         "Click Install below and flash the board.",
         "Connect it to the event Wi-Fi and type the target Pi's IP address (ask your instructor) below, then click Send to Board.",
-        "Open Console — it tries each vulnerability in turn and prints [FOUND] with the flag when one works.",
-        "Copy any found flag into the scoreboard page on the Pi's screen to score your team's points."
+        "Open Console — it prints a menu of 7 challenges, each with a short command like <code>1 user:pass</code> or <code>3 id</code>.",
+        "Type a command into the box under the console and press Enter to try it — e.g. <code>1 admin:admin</code>. Read the response, adjust your guess, and try again as many times as you want (type <code>menu</code> to see the list again).",
+        "When a response contains a flag, it's marked <code>&gt;&gt;&gt; FOUND</code>. Copy it into the scoreboard page on the Pi's screen to score your team's points."
+      ]
+    },
+    {
+      icon: "🌊", tag: "medium", title: "CTF · DDoS Flood",
+      desc: "A classroom denial-of-service demo — floods the Pi's own dashboard page on command. Run it on several boards at once.",
+      manifest: "firmware/ctf-ddos-flood/manifest.json", wifiForm: true, needsTargetIp: true, category: "ctf",
+      steps: [
+        "Click Install below and flash the board.",
+        "Connect it to the event Wi-Fi and type the target Pi's IP address (ask your instructor) below, then click Send to Board.",
+        "Open Console and type <code>start</code> in the box underneath to begin flooding — the board sends requests to the Pi's dashboard as fast as it can, forever, until you tell it to stop.",
+        "Watch the <b>Pi's own screen</b>, not this console — that's where the live traffic meter and \"UNDER ATTACK\" banner appear once enough boards are flooding at once.",
+        "Type <code>stop</code> to pause. Only run this when your instructor says it's time for the DDoS demo — it's a separate activity from flag-hunting."
       ]
     }
   ];
@@ -854,6 +879,9 @@
     var wifiSendBtn = document.getElementById('wifiSendBtn');
     var wifiFormStatus = document.getElementById('wifiFormStatus');
     var wifiConsole = document.getElementById('wifiConsole');
+    var wifiFollowup = document.getElementById('wifiFollowup');
+    var wifiFollowupInput = document.getElementById('wifiFollowupInput');
+    var wifiFollowupBtn = document.getElementById('wifiFollowupBtn');
 
     // The port opened to send Wi-Fi credentials is kept open afterwards so
     // its replies can be streamed straight into wifiConsole below the form --
@@ -899,6 +927,8 @@
       wifiFormStatus.textContent = '';
       wifiConsole.hidden = true;
       wifiConsole.textContent = '';
+      wifiFollowup.hidden = true;
+      wifiFollowupInput.value = '';
 
       overlay.classList.add('open');
     }
@@ -938,6 +968,7 @@
 
         wifiConsole.hidden = false;
         wifiConsole.textContent = '';
+        wifiFollowup.hidden = false;
         var reader = port.readable.getReader();
         activeWifiReader = reader;
         var decoder = new TextDecoder();
@@ -961,6 +992,27 @@
     }
 
     wifiSendBtn.addEventListener('click', sendWifiOverSerial);
+
+    // Some CTF tools ask a follow-up question over Serial after connecting
+    // (e.g. "type a username:password guess") -- this sends whatever the
+    // student types back down the same still-open port.
+    async function sendFollowupLine(){
+      if (!activeWifiPort) return;
+      var val = wifiFollowupInput.value;
+      if (!val) return;
+      try {
+        var writer = activeWifiPort.writable.getWriter();
+        await writer.write(new TextEncoder().encode(val + '\n'));
+        writer.releaseLock();
+        wifiFollowupInput.value = '';
+      } catch (e) {
+        wifiFormStatus.textContent = 'Could not send: ' + e.message;
+      }
+    }
+    wifiFollowupBtn.addEventListener('click', sendFollowupLine);
+    wifiFollowupInput.addEventListener('keydown', function(e){
+      if (e.key === 'Enter') sendFollowupLine();
+    });
 
     function closeLab(){
       overlay.classList.remove('open');

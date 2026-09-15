@@ -9,5 +9,10 @@ desktop.ini
 *.o
 *.elf
 
+# Python (pi-server)
+__pycache__/
+*.pyc
+venv/
+
 # Secrets / local env
 .env

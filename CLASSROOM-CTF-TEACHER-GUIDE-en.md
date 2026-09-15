@@ -81,17 +81,33 @@ teams.
 
 ## 6. Answer key — how each vulnerability is actually solved
 
-| # | Vulnerability | Exact solve | Flag |
-|---|---|---|---|
-| 1 | Default admin credentials | Open `http://<pi-ip>:8080/login`, log in with `admin` / `admin` | `FLAG{default_creds_are_forever}` |
-| 2 | Hidden unlinked page | Visit `http://<pi-ip>:8080/hidden` directly (never linked anywhere) | `FLAG{security_through_obscurity_isnt}` |
-| 3 | IDOR | `http://<pi-ip>:8080/api/note?id=2` (id=1 and id=3 are decoys; id=2 has the flag) | `FLAG{access_control_matters}` |
-| 4 | Exposed backup file | `http://<pi-ip>:8080/backup.zip` | `FLAG{never_leave_backups_public}` |
-| 5 | Verbose error disclosure | `http://<pi-ip>:8080/api/divide?a=1&b=0` (division by zero triggers the "traceback") | `FLAG{verbose_errors_leak_secrets}` |
-| 6 | Unauthenticated admin endpoint | `POST http://<pi-ip>:8080/api/admin/reset` (no login needed at all) | `FLAG{check_auth_on_every_endpoint}` |
-| 7 | Simulated command injection | `http://<pi-ip>:8080/api/ping?host=;whoami` — any of `;`, `&&`, `\|`, or `` ` `` in the `host` param triggers it. **Nothing real is ever executed** — it's a scripted response, safe by design. | `FLAG{never_trust_raw_input_near_a_shell}` |
+**Nothing runs automatically.** The Flag Prober ESP32 tool is a menu-driven
+console — a student picks a challenge and types a command (via the
+follow-up box under the console on the site), reads the response, and tries
+again with a different guess. This is deliberate: it's the difference
+between "plug in a board and a flag falls out" (too easy, not the point)
+and actually working through each vulnerability.
 
-The **CTF Flag Prober** ESP32 tool tries all seven of these automatically — if a team is stuck, suggest they flash it and read the console rather than exploring by hand.
+| # | Vulnerability | ESP32 command | Direct URL equivalent | Flag |
+|---|---|---|---|---|
+| 1 | Default admin credentials | `1 admin:admin` | `POST http://<pi-ip>:8080/login` (`username=admin&password=admin`) | `FLAG{default_creds_are_forever}` |
+| 2 | Hidden unlinked page | `2 hidden` — student must guess the path name (nothing links to it); wrong guesses just 404 | `GET http://<pi-ip>:8080/hidden` | `FLAG{security_through_obscurity_isnt}` |
+| 3 | IDOR | `3 2` (id=1 and id=3 are decoys; id=2 has the flag) | `GET http://<pi-ip>:8080/api/note?id=2` | `FLAG{access_control_matters}` |
+| 4 | Exposed backup file | `4 backup.zip` — student must guess the filename; wrong guesses just 404 | `GET http://<pi-ip>:8080/backup.zip` | `FLAG{never_leave_backups_public}` |
+| 5 | Verbose error disclosure | `5 10 0` (or any `a b` where b=0) | `GET http://<pi-ip>:8080/api/divide?a=10&b=0` (division by zero triggers the "traceback") | `FLAG{verbose_errors_leak_secrets}` |
+| 6 | Unauthenticated admin endpoint | `6` | `POST http://<pi-ip>:8080/api/admin/reset` (no login needed at all) | `FLAG{check_auth_on_every_endpoint}` |
+| 7 | Simulated command injection | `7 ;whoami` | `GET http://<pi-ip>:8080/api/ping?host=;whoami` — any of `;`, `&&`, `\|`, or `` ` `` in the `host` param triggers it. **Nothing real is ever executed** — it's a scripted response, safe by design. | `FLAG{never_trust_raw_input_near_a_shell}` |
+
+Only #2, #4, and #6 don't require a guessed argument on the ESP32 side — but
+#2 and #4 still require the student to type the *right path/filename*
+themselves (`2`/`4` alone just prints a usage message). If a team can't find
+#2 or #4, nudge them toward Recon Scanner or common wordlists (e.g. "admin,"
+"secret," "hidden" for pages; "backup.zip," "backup.tar.gz," "db_backup.sql"
+for files) rather than giving away the exact answer.
+
+If a team is stuck on #1, suggest search terms like "most common default
+router passwords." Typing `menu` on the Flag Prober console re-prints the
+full command list at any time.
 
 ### What each Patch button actually does
 
@@ -119,7 +135,49 @@ The **CTF Flag Prober** ESP32 tool tries all seven of these automatically — if
 
 ---
 
-## 8. Troubleshooting quick reference
+## 8. Bonus: the DDoS demo (separate from flag-hunting)
+
+A third ESP32 tool, **CTF · DDoS Flood**, exists for a standalone
+attack/defense demo: instead of finding vulnerabilities, several boards
+flood the Pi's own dashboard page with requests at once, and you (the
+instructor) turn on a real mitigation and show it working. Run this as its
+own activity, before or after the flag round — not at the same time (it
+will make the flag round's dashboard sluggish for everyone).
+
+**How to run it:**
+1. Flash **3–5+ ESP32 boards** with CTF · DDoS Flood (more boards = a more
+   convincing demo). Connect each to the event Wi-Fi with the Pi's target IP,
+   same as any other CTF tool.
+2. On each board's console, type `start`. All boards begin hammering the
+   Pi's `/` page as fast as they can, forever, until told to stop.
+3. Point everyone at the **Pi's own screen** (not any single board's
+   console) — a banner near the top switches to **🔴 UNDER ATTACK** once the
+   combined request rate crosses ~20 req/s, and a live `req/s` counter climbs.
+4. Click **🛡️ Enable DDoS Protection** on the dashboard. The banner turns
+   green, a `blocked` counter starts climbing, and (if the flood was heavy
+   enough to slow the Pi down) the dashboard itself feels responsive again.
+5. Type `stop` on each flooding board when you're done, then explain the fix
+   (below) before moving on.
+
+**How the fix actually works (for the debrief):** protection is a **per-IP
+rate limit** — once enabled, any single device sending more than 15
+requests per second gets an instant, cheap rejection (HTTP 429) instead of
+being processed. Each ESP32 has its own IP address on the Wi-Fi, so this
+throttles every flooding board individually without needing to tell "attack"
+traffic apart from "real" traffic any other way. This is a real, common
+DDoS mitigation technique (rate limiting / traffic shaping) — the same idea
+behind Cloudflare-style "too many requests" pages. It's not perfect (a
+large-enough botnet spread across enough IPs can still overwhelm a single
+per-IP limit — worth raising if a student asks "couldn't they just use more
+devices?").
+
+The scoreboard, flag submission, and patch buttons are deliberately **never
+rate-limited** — they're "control-plane" traffic, exempted so you can always
+see the dashboard and flip protection on/off even at the worst of a flood.
+
+---
+
+## 9. Troubleshooting quick reference
 
 | Symptom | Fix |
 |---|---|
@@ -132,22 +190,23 @@ The **CTF Flag Prober** ESP32 tool tries all seven of these automatically — if
 
 ---
 
-## 9. Resetting between class periods
+## 10. Resetting between class periods
 
 ```bash
 curl -X POST http://localhost:8080/admin/reset-all -d "pin=1234"
 ```
 
-Change the PIN in `pi-server/app.py` if you want a non-default one. This wipes scores, found flags, and un-patches every vulnerability — ready for the next class.
+Change the PIN in `pi-server/app.py` if you want a non-default one. This wipes scores, found flags, un-patches every vulnerability, turns DDoS protection back off, and clears the traffic counters — ready for the next class.
 
 ---
 
-## 10. Curriculum alignment (PLTW Cybersecurity)
+## 11. Curriculum alignment (PLTW Cybersecurity)
 
 | This event maps to... |
 |---|
 | Unit 2, Project 2.2.4 "Secure the Server" / Project 2.3.4 "Find the Exploits" — this event *is* those two projects, live |
 | Unit 3 "Analyze and Defend Network Attacks," "Eradicate the Vulnerabilities" |
+| Unit 3, Activity 3.2.4 "Analyze and Defend Network Attacks" (the DDoS demo — real traffic, a real rate-limiting mitigation) |
 | Unit 1, Activity 1.1.2 "Password Protection and Authentication" (vulnerability #1) |
 | Unit 1, Activity 1.1.1 "Cybersecurity and Code of Conduct" (the consent briefing) |
 

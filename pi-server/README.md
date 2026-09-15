@@ -140,3 +140,12 @@ See the table in [CLASSROOM-CTF-EVENT-en.md §4](../CLASSROOM-CTF-EVENT-en.md#4-
 for the full list and the real-world lesson behind each one. Every
 vulnerability can be independently "patched" from the dashboard — patching
 is permanent until the next reset.
+
+## Bonus: the DDoS demo
+
+The dashboard also tracks live requests/second and can flip on a per-IP
+rate limit (**🛡️ Enable DDoS Protection** button) — this pairs with the
+**CTF · DDoS Flood** ESP32 tool for a separate, optional volume-attack demo.
+See [CLASSROOM-CTF-TEACHER-GUIDE-en.md §8](../CLASSROOM-CTF-TEACHER-GUIDE-en.md#8-bonus-the-ddos-demo-separate-from-flag-hunting)
+for how to run it. Run it as its own activity, not during the flag round —
+a heavy flood makes the whole dashboard sluggish for everyone by design.

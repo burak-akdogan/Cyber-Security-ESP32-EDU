@@ -42,11 +42,11 @@ A small Flask app on the Pi, seeded with **6–7 intentionally planted issues**,
 
 | # | Vulnerability | What a student does | Real-world lesson |
 |---|---|---|---|
-| 1 | Default admin credentials (`admin` / `admin`) on a login panel | Try the obvious default | Change default credentials — always |
-| 2 | Hidden, unlinked page (no link anywhere, but guessable/discoverable) | Basic directory guessing | "Security through obscurity" isn't security |
+| 1 | Default admin credentials (`admin` / `admin`) on a login panel | Research common admin/router default passwords, then type a guess by hand (deliberately manual, not automated) | Change default credentials — always |
+| 2 | Hidden, unlinked page (no link anywhere, but guessable/discoverable) | Type a guessed page name yourself — no auto-solve, wrong guesses just 404 | "Security through obscurity" isn't security |
 | 3 | IDOR — `/api/note?id=1` shows another user's note if you just change the number | Increment/change an ID in a URL | Every request needs an ownership check, not just a login |
-| 4 | Exposed backup file left in the web root (`/backup.zip`) | Just... request the file | Don't leave debug/backup artifacts on a live server |
-| 5 | Verbose error page that leaks a flag in a stack trace | Trigger an error on purpose | Never show raw errors to the outside world |
+| 4 | Exposed backup file left in the web root (`/backup.zip`) | Type a guessed filename yourself — no auto-solve, wrong guesses just 404 | Don't leave debug/backup artifacts on a live server |
+| 5 | Verbose error page that leaks a flag in a stack trace | Try edge-case number pairs yourself until one triggers an error | Never show raw errors to the outside world |
 | 6 | Unauthenticated "admin action" endpoint (works with no login at all) | Call the endpoint directly | Authentication has to be checked on *every* sensitive endpoint, not just the login form |
 | 7 *(hardest, optional)* | Simulated command-injection field (safely faked — no real shell is ever run) | Notice unsanitized input reflected back | Why raw user input near a system call is dangerous |
 
@@ -61,7 +61,8 @@ Same philosophy as every existing lab here: flash it, watch the Console, done.
 | Tool firmware | What it does |
 |---|---|
 | **Recon Scanner** | Connects to the Pi's Wi-Fi, probes a handful of common ports/paths, prints what it finds to Serial — the "where do I even start" tool |
-| **Flag Prober** | Automatically tries the known vulnerability patterns (default creds, ID increment, common backup filenames) against the Pi and prints any flag it captures |
+| **Flag Prober** | An interactive console, not an autosolver — it prints a 7-item menu and waits. The student types a short command (via a follow-up box on the site) to try one challenge at a time, reads the response, and keeps guessing (different IDs, credentials, payloads) until something works |
+| **DDoS Flood** *(separate bonus activity, see §9)* | On command (`start`/`stop`), floods the Pi's own dashboard page with requests as fast as it can. Run on several boards at once for a volume-based denial-of-service demo the instructor can then mitigate live |
 | *(optional)* **Manual mode** | For students who want to explore by hand from a laptop browser on the same Wi-Fi instead of/alongside an ESP32 |
 
 ---
@@ -97,21 +98,47 @@ This exercise is designed to be the hands-on/hardware companion to specific offi
 
 ---
 
-## 9. Safety / ethics (same rules as every other lab in this repo)
+## 9. Bonus activity: the DDoS demo
+
+A separate, optional add-on to the flag-hunting round — run it as its own
+activity, not simultaneously (a heavy flood makes the flag round's dashboard
+sluggish for everyone). Several ESP32s, each running the **DDoS Flood**
+tool, hammer the Pi's own dashboard page (`/`) with requests on command
+(`start`/`stop`). The dashboard tracks a live requests/second figure and
+flips to a **🔴 UNDER ATTACK** banner once the combined rate crosses a
+threshold (~20 req/s — a handful of boards is plenty). The instructor then
+clicks **🛡️ Enable DDoS Protection** to demonstrate a real mitigation: a
+per-IP rate limit that cheaply rejects (HTTP 429) any single device sending
+more than 15 requests/second, without needing to otherwise distinguish
+"attack" traffic from real traffic. The scoreboard, flag submission, and
+patch endpoints are deliberately exempt from this limit, so the instructor
+can always see and control the dashboard even mid-flood.
+
+This teaches the same lesson as [Lab 2 (Deauth Canary) / Lab 9 (Deauth
+Storm)](README.md#-the-labs) one layer up the stack: a *volume* attack
+doesn't need to exploit any bug at all, and a real, explainable defense
+(rate limiting) can still blunt it without the attacker needing to be
+"caught" individually.
+
+---
+
+## 10. Safety / ethics (same rules as every other lab in this repo)
 
 - Runs on a network this class controls end-to-end — never the school's production Wi-Fi
 - Every "victim" is the instructor's own Raspberry Pi — no third-party system is ever touched
 - Consent + code-of-conduct briefing happens before power-on, same as every other lab
 - Flags/vulnerabilities are reset between class periods so nothing carries over or gets genuinely broken
+- The DDoS demo only ever targets the same Pi, over the same isolated Wi-Fi — same ownership/consent rule as everything else here, just at higher volume
 
 ---
 
-## 10. What was built
+## 11. What was built
 
-- [pi-server/app.py](pi-server/app.py) — the Flask target app: all 7 vulnerabilities, the scoreboard, flag submission, and per-vulnerability patch buttons. [pi-server/README.md](pi-server/README.md) covers running it and resetting between class periods.
+- [pi-server/app.py](pi-server/app.py) — the Flask target app: all 7 vulnerabilities, the scoreboard, flag submission, per-vulnerability patch buttons, live traffic tracking, and the DDoS protection toggle. [pi-server/README.md](pi-server/README.md) covers running it and resetting between class periods.
 - [firmware/ctf-recon-scanner/](firmware/ctf-recon-scanner/) — flash-and-go ESP32 tool that scans the target Pi's common ports/paths
-- [firmware/ctf-flag-prober/](firmware/ctf-flag-prober/) — flash-and-go ESP32 tool that automatically tries every known vulnerability pattern and prints any flag it captures
-- A new **"Whole-Class Capture the Flag"** section on the [flashing site](https://burak-akdogan.github.io/Cyber-Security-ESP32-EDU/), with both tools flashable the same way as every other lab (their Wi-Fi form also asks for the target Pi's IP address)
+- [firmware/ctf-flag-prober/](firmware/ctf-flag-prober/) — interactive, menu-driven ESP32 console for trying each of the 7 vulnerabilities by hand
+- [firmware/ctf-ddos-flood/](firmware/ctf-ddos-flood/) — flash-and-go ESP32 tool for the bonus DDoS demo (§9)
+- A new **"Whole-Class Capture the Flag"** section on the [flashing site](https://burak-akdogan.github.io/Cyber-Security-ESP32-EDU/), with all three tools flashable the same way as every other lab (their Wi-Fi form also asks for the target Pi's IP address)
 - [docs/ctf-rules.html](docs/ctf-rules.html) — the student-facing rules page (printable/downloadable from the site, no flag contents included)
 
 Both new sketches live under `firmware/`, so the existing GitHub Actions workflow picks them up and publishes them automatically on the next push — no workflow changes were needed.
