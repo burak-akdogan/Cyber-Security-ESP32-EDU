@@ -352,30 +352,69 @@ DASHBOARD_HTML = """
 <style>
   :root{
     color-scheme:dark;
-    --bg:#05070a; --panel:#11161d; --panel-border:#232f3b;
-    --ink:#e4edf4; --ink-dim:#8fa3b3; --ink-dimmer:#5f7385;
-    --accent:#38bdf8; --accent-2:#a78bfa; --good:#4ade80; --bad:#f87171; --warn:#fbbf24;
+    --bg:#020504; --panel:rgba(5,14,10,.86); --panel-border:rgba(0,255,157,.22);
+    --ink:#d8fff0; --ink-dim:#7fcbaa; --ink-dimmer:#4d7a63;
+    --accent:#00fff2; --accent-2:#ff2079; --good:#00ff9d; --bad:#ff3b6b; --warn:#f0ff5c;
   }
   *{box-sizing:border-box}
+  html,body{height:100%}
   body{
     background:var(--bg); color:var(--ink); margin:0; padding:22px clamp(14px,3vw,32px) 40px;
-    font-family:-apple-system,"Segoe UI",Roboto,system-ui,sans-serif;
+    font-family:Consolas,"Courier New",ui-monospace,monospace;
+    position:relative; overflow-x:hidden;
   }
-  .topbar{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:6px}
-  h1{font-size:clamp(20px,3vw,26px); margin:0; display:flex; align-items:center; gap:10px}
-  h1 .flag-emoji{filter:drop-shadow(0 0 10px rgba(56,189,248,.5))}
-  .live{display:flex; align-items:center; gap:7px; font-size:12px; color:var(--ink-dim); font-family:ui-monospace,Consolas,monospace}
+  canvas#matrixRain{ position:fixed; inset:0; z-index:-2; opacity:.5 }
+  .scanlines{
+    position:fixed; inset:0; pointer-events:none; z-index:5;
+    background:repeating-linear-gradient(0deg, rgba(0,255,157,.05) 0px, rgba(0,255,157,.05) 1px, transparent 1px, transparent 3px);
+    mix-blend-mode:overlay;
+  }
+  .scanlines::after{
+    content:''; position:fixed; left:0; right:0; height:40%;
+    background:linear-gradient(rgba(0,255,242,.05), transparent 80%);
+    animation:scanMove 6s linear infinite;
+  }
+  @keyframes scanMove{ 0%{top:-40%} 100%{top:100%} }
+
+  .topbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:6px}
+  .holo-badge{
+    width:42px; height:42px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:19px;
+    background:conic-gradient(from 0deg, rgba(0,255,157,.18), rgba(0,255,242,.3), rgba(255,32,121,.18), rgba(0,255,157,.18));
+    border:1px solid rgba(0,255,242,.5);
+    filter:drop-shadow(0 0 8px rgba(0,255,242,.6));
+    animation:holoSpin 5s linear infinite, holoFlicker 2.6s ease-in-out infinite;
+  }
+  @keyframes holoSpin{ to{transform:rotate(360deg)} }
+  @keyframes holoFlicker{ 0%,44%,49%,72%,100%{opacity:1} 46%{opacity:.35} 74%{opacity:.5} }
+
+  h1{font-size:clamp(18px,2.6vw,25px); margin:0; display:flex; align-items:center; gap:10px; position:relative}
+  h1 .flag-emoji{filter:drop-shadow(0 0 10px rgba(0,255,157,.6))}
+  .glitch{ position:relative; color:var(--ink) }
+  .glitch::before, .glitch::after{
+    content:attr(data-text); position:absolute; left:24px; top:0; width:100%; height:100%;
+    overflow:hidden; background:transparent;
+  }
+  .glitch::before{ color:var(--accent-2); clip-path:inset(0 0 65% 0); animation:glitchTop 3.6s infinite linear alternate-reverse }
+  .glitch::after{ color:var(--accent); clip-path:inset(65% 0 0 0); animation:glitchBot 2.7s infinite linear alternate-reverse }
+  @keyframes glitchTop{ 0%,92%,100%{transform:translate(0,0)} 93%{transform:translate(-2px,-1px)} 95%{transform:translate(2px,1px)} 97%{transform:translate(-1px,1px)} }
+  @keyframes glitchBot{ 0%,90%,100%{transform:translate(0,0)} 91%{transform:translate(2px,1px)} 94%{transform:translate(-2px,-1px)} 96%{transform:translate(1px,-1px)} }
+
+  .live{display:flex; align-items:center; gap:7px; font-size:12px; color:var(--ink-dim); margin-left:auto}
   .dot{width:8px; height:8px; border-radius:50%; background:var(--good); box-shadow:0 0 8px var(--good); animation:pulse 1.6s ease-in-out infinite}
   .dot.lost{background:var(--bad); box-shadow:0 0 8px var(--bad); animation:none}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-  .sub{color:var(--ink-dim); font-size:13px; line-height:1.6; margin:6px 0 24px; max-width:760px}
+  .sub{color:var(--ink-dim); font-size:13px; line-height:1.6; margin:10px 0 22px; max-width:760px}
   .sub b{color:var(--ink)}
 
   .layout{display:grid; grid-template-columns:1.2fr 1fr; gap:18px; align-items:start}
   @media (max-width:880px){.layout{grid-template-columns:1fr}}
 
-  .panel{background:var(--panel); border:1px solid var(--panel-border); border-radius:14px; padding:18px}
-  .panel h2{font-size:12px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.06em; margin:0 0 14px; font-weight:700}
+  .panel{
+    background:var(--panel); border:1px solid var(--panel-border); border-radius:14px; padding:18px;
+    backdrop-filter:blur(6px); box-shadow:0 0 24px rgba(0,255,157,.05), inset 0 0 30px rgba(0,255,157,.02);
+  }
+  .panel h2{font-size:12px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.08em; margin:0 0 14px; font-weight:700}
 
   .board-row{
     display:flex; align-items:center; gap:12px; padding:10px 8px; border-radius:10px;
@@ -384,75 +423,128 @@ DASHBOARD_HTML = """
   .board-row:last-child{border-bottom:none}
   .rank{
     width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    font-size:12px; font-weight:800; background:#0c1319; color:var(--ink-dim); flex-shrink:0;
+    font-size:12px; font-weight:800; background:rgba(0,255,157,.08); color:var(--ink-dim); flex-shrink:0;
   }
-  .rank.r1{background:rgba(251,191,36,.15); color:var(--warn)}
-  .rank.r2{background:rgba(148,163,184,.18); color:#cbd5e1}
-  .rank.r3{background:rgba(217,119,6,.15); color:#d97706}
-  .board-name{flex:1; font-size:14px; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .board-meta{font-size:11px; color:var(--ink-dimmer); font-family:ui-monospace,Consolas,monospace}
-  .board-score{font-size:18px; font-weight:800; color:var(--good); font-variant-numeric:tabular-nums; min-width:56px; text-align:right}
+  .rank.r1{background:rgba(240,255,92,.18); color:var(--warn)}
+  .rank.r2{background:rgba(0,255,242,.15); color:var(--accent)}
+  .rank.r3{background:rgba(255,32,121,.15); color:var(--accent-2)}
+  .board-name{flex:1; font-size:14px; font-weight:700; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .board-meta{font-size:11px; color:var(--ink-dimmer)}
+  .board-score{font-size:18px; font-weight:800; color:var(--good); text-shadow:0 0 10px rgba(0,255,157,.5); font-variant-numeric:tabular-nums; min-width:56px; text-align:right}
   .empty-msg{color:var(--ink-dimmer); font-size:13px; padding:8px 0}
 
   .vuln-row{display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--panel-border)}
   .vuln-row:last-child{border-bottom:none}
-  .vuln-id{font-family:ui-monospace,Consolas,monospace; font-size:11px; color:var(--ink-dimmer); width:20px; flex-shrink:0}
+  .vuln-id{font-size:11px; color:var(--ink-dimmer); width:20px; flex-shrink:0}
   .vuln-name{font-size:13px; flex:1; min-width:0}
-  .badge{font-family:ui-monospace,Consolas,monospace; font-size:10px; font-weight:700; letter-spacing:.03em; padding:3px 9px; border-radius:999px; white-space:nowrap}
-  .badge.open{background:rgba(248,113,113,.12); color:var(--bad); border:1px solid rgba(248,113,113,.35)}
-  .badge.patched{background:rgba(74,222,128,.12); color:var(--good); border:1px solid rgba(74,222,128,.35)}
+  .badge{font-size:10px; font-weight:700; letter-spacing:.03em; padding:3px 9px; border-radius:999px; white-space:nowrap}
+  .badge.open{background:rgba(255,59,107,.14); color:var(--bad); border:1px solid rgba(255,59,107,.4)}
+  .badge.patched{background:rgba(0,255,157,.12); color:var(--good); border:1px solid rgba(0,255,157,.4)}
   .patch-btn{
-    padding:5px 12px; border-radius:7px; border:1px solid rgba(56,189,248,.4);
-    background:rgba(56,189,248,.1); color:var(--accent); cursor:pointer; font-size:11px; font-weight:600;
+    padding:5px 12px; border-radius:7px; border:1px solid rgba(0,255,242,.4);
+    background:rgba(0,255,242,.08); color:var(--accent); cursor:pointer; font-size:11px; font-weight:700;
   }
-  .patch-btn:hover{background:rgba(56,189,248,.2)}
+  .patch-btn:hover{background:rgba(0,255,242,.18)}
 
-  .events{font-family:ui-monospace,Consolas,monospace; font-size:12px; color:var(--ink-dim); max-height:220px; overflow-y:auto}
+  .events{font-size:12px; color:var(--ink-dim); max-height:220px; overflow-y:auto}
   .events div{padding:5px 0; border-bottom:1px solid var(--panel-border)}
   .events div:last-child{border-bottom:none}
 
   .submit-box{margin-top:20px; padding-top:18px; border-top:1px solid var(--panel-border)}
   .submit-box input{
     width:100%; margin-bottom:9px; padding:10px 12px; border-radius:9px; border:1px solid var(--panel-border);
-    background:#0b1015; color:var(--ink); box-sizing:border-box; font-size:13.5px;
+    background:rgba(0,10,6,.6); color:var(--ink); box-sizing:border-box; font-size:13.5px; font-family:inherit;
   }
   .submit-box input:focus{outline:none; border-color:var(--accent)}
   .submit-box button{
-    width:100%; padding:11px; border:0; border-radius:9px; font-weight:700; font-size:13.5px; cursor:pointer;
-    background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#04121a;
+    width:100%; padding:11px; border:0; border-radius:9px; font-weight:800; font-size:13.5px; cursor:pointer;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#02120d; letter-spacing:.03em;
   }
   .result{margin-top:10px; font-size:13px; min-height:18px}
   .result.ok{color:var(--good)}
   .result.bad{color:var(--bad)}
 
   .traffic-banner{
-    margin:0 0 20px; padding:16px 20px; border-radius:14px;
-    border:1px solid var(--panel-border); background:var(--panel);
+    margin:0 0 16px; padding:16px 20px; border-radius:14px;
+    border:1px solid var(--panel-border); background:var(--panel); backdrop-filter:blur(6px);
     display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
     transition:background .3s, border-color .3s;
   }
   .traffic-banner.attack{
-    background:rgba(248,113,113,.1); border-color:rgba(248,113,113,.5);
+    background:rgba(255,59,107,.1); border-color:rgba(255,59,107,.6);
     animation:attackPulse 1s ease-in-out infinite;
   }
-  @keyframes attackPulse{ 0%,100%{box-shadow:0 0 0 rgba(248,113,113,0)} 50%{box-shadow:0 0 24px rgba(248,113,113,.4)} }
-  .traffic-banner.protected{ background:rgba(74,222,128,.08); border-color:rgba(74,222,128,.4) }
+  @keyframes attackPulse{ 0%,100%{box-shadow:0 0 0 rgba(255,59,107,0)} 50%{box-shadow:0 0 26px rgba(255,59,107,.45)} }
+  .traffic-banner.protected{ background:rgba(0,255,157,.06); border-color:rgba(0,255,157,.5) }
   .traffic-left{ display:flex; align-items:center; gap:14px; flex-wrap:wrap }
   .traffic-status{ font-size:15px; font-weight:800; white-space:nowrap }
-  .traffic-metric{ font-family:ui-monospace,Consolas,monospace; font-size:13px; color:var(--ink-dim); white-space:nowrap }
+  .traffic-metric{ font-size:13px; color:var(--ink-dim); white-space:nowrap }
   .traffic-metric b{ color:var(--ink); font-size:20px }
   .ddos-btn{
-    padding:9px 16px; border-radius:9px; border:1px solid rgba(56,189,248,.4);
-    background:rgba(56,189,248,.1); color:var(--accent); font-weight:700; font-size:12.5px; cursor:pointer; white-space:nowrap;
+    padding:9px 16px; border-radius:9px; border:1px solid rgba(0,255,242,.4);
+    background:rgba(0,255,242,.08); color:var(--accent); font-weight:700; font-size:12.5px; cursor:pointer; white-space:nowrap;
+    font-family:inherit;
   }
-  .ddos-btn.active{ border-color:rgba(74,222,128,.4); background:rgba(74,222,128,.12); color:var(--good) }
+  .ddos-btn.active{ border-color:rgba(0,255,157,.5); background:rgba(0,255,157,.12); color:var(--good) }
+
+  .attack-control{
+    margin:0 0 20px; padding:16px 20px; border-radius:14px;
+    border:1px solid rgba(255,32,121,.35); background:rgba(20,3,13,.55); backdrop-filter:blur(6px);
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  .attack-left{ display:flex; align-items:center; gap:16px; flex-wrap:wrap }
+  .attack-label{ font-size:12.5px; font-weight:800; color:var(--accent-2); letter-spacing:.05em; text-transform:uppercase }
+  .attack-timer{ font-size:26px; font-weight:800; color:var(--good); text-shadow:0 0 14px rgba(0,255,157,.6); font-variant-numeric:tabular-nums }
+  .attack-buttons{ display:flex; gap:10px; flex-wrap:wrap }
+  .launch-btn{
+    padding:12px 22px; border-radius:10px; border:1px solid rgba(255,32,121,.6);
+    background:linear-gradient(135deg,var(--accent-2),#8a1cff); color:#fff; font-weight:800; font-size:12.5px;
+    cursor:pointer; letter-spacing:.04em; box-shadow:0 0 22px rgba(255,32,121,.35); font-family:inherit;
+  }
+  .launch-btn:hover{ box-shadow:0 0 32px rgba(255,32,121,.55) }
+  .stop-timer-btn{
+    padding:12px 18px; border-radius:10px; border:1px solid var(--panel-border);
+    background:rgba(255,255,255,.04); color:var(--ink-dim); font-weight:700; font-size:12px; cursor:pointer; font-family:inherit;
+  }
+
+  .countdown-overlay{
+    position:fixed; inset:0; z-index:100;
+    background:rgba(1,4,3,.94); backdrop-filter:blur(5px);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .countdown-number{
+    font-size:min(42vw,260px); font-weight:900; line-height:1; color:var(--good);
+    text-shadow:0 0 50px rgba(0,255,157,.85), 0 0 120px rgba(0,255,157,.4);
+    animation:countdownPop .55s ease-out;
+  }
+  .countdown-number.go{
+    color:var(--accent-2); font-size:min(18vw,120px); letter-spacing:.05em;
+    text-shadow:0 0 50px rgba(255,32,121,.9), 0 0 130px rgba(255,32,121,.5);
+  }
+  @keyframes countdownPop{ 0%{transform:scale(.3); opacity:0} 60%{transform:scale(1.15); opacity:1} 100%{transform:scale(1)} }
+  .countdown-sub{ margin-top:18px; letter-spacing:.35em; color:var(--accent); font-size:13px; text-transform:uppercase }
 </style></head><body>
 
+  <canvas id="matrixRain"></canvas>
+  <div class="scanlines"></div>
+
   <div class="topbar">
-    <h1><span class="flag-emoji">&#128681;</span> Classroom CTF &mdash; Live Scoreboard</h1>
+    <div class="holo-badge">&#129399;</div>
+    <h1 class="glitch" data-text="Classroom CTF -- Live Scoreboard"><span class="flag-emoji">&#128681;</span>&nbsp;Classroom CTF -- Live Scoreboard</h1>
     <div class="live"><span class="dot" id="liveDot"></span><span id="liveText">live</span></div>
   </div>
   <div class="sub">Find flags, submit them below. <b>First</b> team to find a flag = 100 pts, later finders = 50 pts. Patching a vulnerability = <b>+75</b> pts (finding it first isn't required) &mdash; and it locks that flag for everyone.</div>
+
+  <div class="attack-control" id="attackControl">
+    <div class="attack-left">
+      <span class="attack-label">&#9876;&#65039; Attack Coordination</span>
+      <span class="attack-timer" id="attackTimer">00:00</span>
+    </div>
+    <div class="attack-buttons">
+      <button class="launch-btn" id="launchBtn" onclick="launchCountdown()">&#128640; LAUNCH ATTACK COUNTDOWN</button>
+      <button class="stop-timer-btn" id="stopTimerBtn" onclick="stopTimer()" hidden>&#9209; Stop Timer</button>
+    </div>
+  </div>
 
   <div class="traffic-banner" id="trafficBanner">
     <div class="traffic-left">
@@ -480,11 +572,97 @@ DASHBOARD_HTML = """
       <h2>Vulnerability status</h2>
       <div id="vulns"></div>
       <h2 style="margin-top:20px">Live feed</h2>
-      <div class="events" id="events"><div style="color:#5f7385">Nothing yet</div></div>
+      <div class="events" id="events"><div style="color:#4d7a63">Nothing yet</div></div>
     </div>
   </div>
 
+  <div class="countdown-overlay" id="countdownOverlay" hidden>
+    <div class="countdown-number" id="countdownNumber">3</div>
+    <div class="countdown-sub" id="countdownSub">GET READY</div>
+  </div>
+
 <script>
+(function(){
+  var canvas = document.getElementById('matrixRain');
+  var ctx = canvas.getContext('2d');
+  function resize(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+  var chars = 'アイウエオカキクケコサシスセソタチツテト0123456789ABCDEF$#@%&';
+  var fontSize = 16;
+  var drops = [];
+  function setup(){
+    var cols = Math.floor(canvas.width / fontSize);
+    drops = new Array(cols).fill(1);
+  }
+  setup();
+  window.addEventListener('resize', setup);
+  function draw(){
+    ctx.fillStyle = 'rgba(2,5,4,0.08)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#00ff9d';
+    ctx.font = fontSize + 'px monospace';
+    for (var i = 0; i < drops.length; i++) {
+      var ch = chars[Math.floor(Math.random() * chars.length)];
+      ctx.fillText(ch, i * fontSize, drops[i] * fontSize);
+      if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+      drops[i]++;
+    }
+  }
+  setInterval(draw, 50);
+})();
+
+var attackSeconds = 0;
+var timerInterval = null;
+
+function formatTime(s){
+  var m = Math.floor(s / 60);
+  var sec = s % 60;
+  return (m < 10 ? '0' + m : m) + ':' + (sec < 10 ? '0' + sec : sec);
+}
+
+function startTimer(){
+  attackSeconds = 0;
+  document.getElementById('attackTimer').textContent = formatTime(0);
+  document.getElementById('stopTimerBtn').hidden = false;
+  clearInterval(timerInterval);
+  timerInterval = setInterval(function(){
+    attackSeconds++;
+    document.getElementById('attackTimer').textContent = formatTime(attackSeconds);
+  }, 1000);
+}
+
+function stopTimer(){
+  clearInterval(timerInterval);
+  document.getElementById('stopTimerBtn').hidden = true;
+}
+
+function launchCountdown(){
+  var overlay = document.getElementById('countdownOverlay');
+  var numberEl = document.getElementById('countdownNumber');
+  var subEl = document.getElementById('countdownSub');
+  var sequence = ['3', '2', '1', 'GO'];
+  var i = 0;
+  overlay.hidden = false;
+  function step(){
+    if (i >= sequence.length) {
+      overlay.hidden = true;
+      startTimer();
+      return;
+    }
+    var val = sequence[i];
+    numberEl.textContent = val;
+    numberEl.className = 'countdown-number' + (val === 'GO' ? ' go' : '');
+    numberEl.style.animation = 'none';
+    void numberEl.offsetWidth;
+    numberEl.style.animation = '';
+    subEl.textContent = val === 'GO' ? 'ATTACK!' : 'GET READY';
+    i++;
+    setTimeout(step, val === 'GO' ? 700 : 800);
+  }
+  step();
+}
+
 function medal(rank){
   if(rank === 0) return 'r1';
   if(rank === 1) return 'r2';
