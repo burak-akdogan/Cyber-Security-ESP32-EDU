@@ -1,6 +1,6 @@
 {
   "name": "ctf-ddos-flood",
-  "version": "2026.09.15-6c1c727",
+  "version": "2026.09.15-a669bb6",
   "new_install_prompt_erase": true,
   "builds": [
     {
