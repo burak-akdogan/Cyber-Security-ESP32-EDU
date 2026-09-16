@@ -172,6 +172,11 @@ void pollState() {
       Serial.println("\n########## " + label + " ##########");
       Serial.println("Your role was: " + myRole);
       Serial.println("Check the projector for the full reveal.");
+    } else if (myPhase == "lobby") {
+      // A new round started -- clear the old role so it can't leak into the
+      // next one for the ~1.5s before the fresh role arrives on a later poll.
+      myRole = "";
+      Serial.println("\n=== Back in the lobby -- waiting for the next round ===");
     }
     printMenu();
   }

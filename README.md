@@ -51,6 +51,16 @@ All libraries used ship with the ESP32 Arduino core (`WiFi.h`, `esp_wifi.h`, `We
 
 ---
 
+## 🚩 Whole-Class Capture the Flag Event
+
+Beyond the individual labs above, this repo also includes a **live, whole-class exercise**: a Raspberry Pi hosts a deliberately vulnerable target (plus an optional Mafia/Town-of-Salem style "Cyber Town" social-deduction game) that the whole class attacks and defends together with pre-built ESP32 tools — still no coding required.
+
+- **What it is / how it's built:** [CLASSROOM-CTF-EVENT-en.md](CLASSROOM-CTF-EVENT-en.md)
+- **Running a session?** [CLASSROOM-CTF-TEACHER-GUIDE-en.md](CLASSROOM-CTF-TEACHER-GUIDE-en.md) (full steps + answer key) — hand students [CLASSROOM-CTF-STUDENT-GUIDE-en.md](CLASSROOM-CTF-STUDENT-GUIDE-en.md) (no answers)
+- **Setting up the Raspberry Pi:** [pi-server/README.md](pi-server/README.md)
+
+---
+
 ## 🎯 Suggested order
 
 **Easiest to run / biggest first impression:**

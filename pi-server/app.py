@@ -14,6 +14,16 @@ import random
 
 app = Flask(__name__)
 
+# Shared PIN for every instructor-only action (dashboard resets, and the
+# Cyber Town/DDoS control buttons below) -- change this before running a
+# real class if you want it to be less guessable.
+INSTRUCTOR_PIN = "1234"
+
+
+def pin_ok():
+    return request.form.get("pin", "") == INSTRUCTOR_PIN
+
+
 FLAGS = {
     1: "FLAG{default_creds_are_forever}",
     2: "FLAG{security_through_obscurity_isnt}",
@@ -414,6 +424,8 @@ def game_register():
     mac = request.form.get("mac", "").strip()
     if not mac:
         return jsonify(error="missing mac"), 400
+    if mac not in game_players and game_phase != "lobby":
+        return jsonify(error="a round is already in progress -- wait for the next round"), 409
     if mac not in game_players:
         num = game_next_num
         game_next_num += 1
@@ -562,7 +574,7 @@ def game_resolve_night():
         else:
             target["alive"] = False
             game_log(f"Player {target_num} ({target['name']}) was eliminated overnight! "
-                     f"Role: {GAME_ROLE_LABEL[target['role']]}")
+                     f"Role: {GAME_ROLE_LABEL.get(target['role'], 'Unknown')}")
 
     game_night_actions.clear()
     winner = game_check_winner()
@@ -606,7 +618,7 @@ def game_resolve_vote():
             if target and target["alive"]:
                 target["alive"] = False
                 game_log(f"Player {target['num']} ({target['name']}) was voted out! "
-                         f"Role: {GAME_ROLE_LABEL[target['role']]}")
+                         f"Role: {GAME_ROLE_LABEL.get(target['role'], 'Unknown')}")
         else:
             game_log("Vote tied -- no one is eliminated.")
     else:

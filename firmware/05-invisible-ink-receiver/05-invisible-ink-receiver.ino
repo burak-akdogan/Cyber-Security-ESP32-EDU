@@ -51,7 +51,10 @@ void loop() {
     int idx = s.substring(p2 + 1, p3).toInt();
     String payload = s.substring(p3 + 1);
 
-    if (expectedTotal == -1) expectedTotal = tot;
+    // Only accept a total that actually fits the fixed-size arrays below --
+    // a malformed SSID or a second sender/receiver pair broadcasting nearby
+    // could otherwise set an out-of-range total and read past parts[]/got[].
+    if (expectedTotal == -1 && tot > 0 && tot <= 64) expectedTotal = tot;
     if (idx >= 0 && idx < 64 && !got[idx]) {
       parts[idx] = payload;
       got[idx] = true;
