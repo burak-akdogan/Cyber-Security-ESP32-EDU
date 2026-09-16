@@ -765,8 +765,13 @@ DASHBOARD_HTML = """
   .patch-btn{
     padding:5px 12px; border-radius:7px; border:1px solid rgba(0,255,242,.4);
     background:rgba(0,255,242,.08); color:var(--accent); cursor:pointer; font-size:11px; font-weight:700;
+    font-family:inherit; letter-spacing:.04em; text-transform:uppercase;
   }
   .patch-btn:hover{background:rgba(0,255,242,.18)}
+
+  .status-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; display:inline-block }
+  .status-dot.good{ background:var(--good); box-shadow:0 0 8px var(--good) }
+  .status-dot.bad{ background:var(--bad); box-shadow:0 0 8px var(--bad); animation:pulse 1.2s ease-in-out infinite }
 
   .events{font-size:12px; color:var(--ink-dim); max-height:220px; overflow-y:auto}
   .events div{padding:5px 0; border-bottom:1px solid var(--panel-border)}
@@ -779,9 +784,11 @@ DASHBOARD_HTML = """
   }
   .submit-box input:focus{outline:none; border-color:var(--accent)}
   .submit-box button{
-    width:100%; padding:11px; border:0; border-radius:9px; font-weight:800; font-size:13.5px; cursor:pointer;
-    background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#02120d; letter-spacing:.03em;
+    width:100%; padding:11px; border-radius:9px; font-weight:800; font-size:13px; cursor:pointer;
+    background:rgba(0,255,242,.08); border:1px solid rgba(0,255,242,.4); color:var(--accent);
+    letter-spacing:.06em; text-transform:uppercase; font-family:inherit;
   }
+  .submit-box button:hover{background:rgba(0,255,242,.18)}
   .result{margin-top:10px; font-size:13px; min-height:18px}
   .result.ok{color:var(--good)}
   .result.bad{color:var(--bad)}
@@ -799,13 +806,13 @@ DASHBOARD_HTML = """
   @keyframes attackPulse{ 0%,100%{box-shadow:0 0 0 rgba(255,59,107,0)} 50%{box-shadow:0 0 26px rgba(255,59,107,.45)} }
   .traffic-banner.protected{ background:rgba(0,255,157,.06); border-color:rgba(0,255,157,.5) }
   .traffic-left{ display:flex; align-items:center; gap:14px; flex-wrap:wrap }
-  .traffic-status{ font-size:15px; font-weight:800; white-space:nowrap }
+  .traffic-status{ display:flex; align-items:center; gap:9px; font-size:15px; font-weight:800; letter-spacing:.03em; white-space:nowrap }
   .traffic-metric{ font-size:13px; color:var(--ink-dim); white-space:nowrap }
   .traffic-metric b{ color:var(--ink); font-size:20px }
   .ddos-btn{
     padding:9px 16px; border-radius:9px; border:1px solid rgba(0,255,242,.4);
-    background:rgba(0,255,242,.08); color:var(--accent); font-weight:700; font-size:12.5px; cursor:pointer; white-space:nowrap;
-    font-family:inherit;
+    background:rgba(0,255,242,.08); color:var(--accent); font-weight:700; font-size:12px; cursor:pointer; white-space:nowrap;
+    font-family:inherit; letter-spacing:.04em;
   }
   .ddos-btn.active{ border-color:rgba(0,255,157,.5); background:rgba(0,255,157,.12); color:var(--good) }
 
@@ -863,10 +870,12 @@ DASHBOARD_HTML = """
   }
   .game-btn{
     padding:11px 20px; border-radius:9px; border:1px solid rgba(0,255,157,.5);
-    background:linear-gradient(135deg,var(--good),var(--accent)); color:#02120d; font-weight:800; font-size:12.5px;
-    cursor:pointer; font-family:inherit;
+    background:rgba(0,255,157,.08); color:var(--good); font-weight:800; font-size:12px;
+    cursor:pointer; font-family:inherit; letter-spacing:.04em;
   }
+  .game-btn:hover{ background:rgba(0,255,157,.18) }
   .game-btn.danger{ border-color:rgba(255,59,107,.5); color:var(--bad); background:rgba(255,59,107,.08) }
+  .game-btn.danger:hover{ background:rgba(255,59,107,.16) }
 
   .game-roster{ display:grid; grid-template-columns:repeat(auto-fill, minmax(140px,1fr)); gap:10px; margin:16px 0 }
   .game-player-card{
@@ -876,7 +885,9 @@ DASHBOARD_HTML = """
   .game-player-card.dead{ opacity:.55; border-color:rgba(255,59,107,.4) }
   .game-player-num{ font-size:11px; color:var(--ink-dimmer) }
   .game-player-name{ font-weight:800; font-size:13.5px; margin:3px 0 }
-  .game-player-status{ font-size:16px }
+  .game-player-status{ width:8px; height:8px; border-radius:50%; margin:6px auto 0 }
+  .game-player-status.alive{ background:var(--good); box-shadow:0 0 8px var(--good) }
+  .game-player-status.dead{ background:var(--ink-dimmer); box-shadow:none }
   .game-player-role{ font-size:11px; margin-top:3px; font-weight:700 }
   .game-player-role.attacker{ color:var(--bad) }
   .game-player-role.defender{ color:var(--accent) }
@@ -896,21 +907,24 @@ DASHBOARD_HTML = """
 
   <div class="tabs">
     <button class="tab-btn active" id="tabCtfBtn" onclick="showTab('ctf')">CTF Scoreboard</button>
-    <button class="tab-btn" id="tabGameBtn" onclick="showTab('game')">&#127919; Cyber Town</button>
+    <button class="tab-btn" id="tabGameBtn" onclick="showTab('game')">Cyber Town</button>
   </div>
 
   <div id="ctfTab">
   <div class="traffic-banner" id="trafficBanner">
     <div class="traffic-left">
-      <span class="traffic-status" id="trafficStatusText">&#128994; Normal traffic</span>
+      <span class="traffic-status">
+        <span class="status-dot good" id="trafficStatusDot"></span>
+        <span id="trafficStatusLabel">NORMAL TRAFFIC</span>
+      </span>
       <span class="traffic-metric"><b id="trafficRps">0</b> req/s &middot; <span id="trafficBlocked">0</span> blocked</span>
     </div>
-    <button class="ddos-btn" id="ddosToggleBtn" onclick="toggleDdosProtection()">&#128737;&#65039; Enable DDoS Protection</button>
+    <button class="ddos-btn" id="ddosToggleBtn" onclick="toggleDdosProtection()">[ ENABLE PROTECTION ]</button>
   </div>
 
   <div class="attackers-panel" id="attackersPanel" hidden>
     <button class="attackers-toggle" id="attackersToggle" onclick="toggleAttackers()">
-      <span>&#9889; Attack Sources <span class="attackers-count-badge" id="attackersCount">0</span></span>
+      <span>ATTACK SOURCES <span class="attackers-count-badge" id="attackersCount">[0]</span></span>
       <span id="attackersChevron">&#9660;</span>
     </button>
     <div class="attackers-list" id="attackersList"></div>
@@ -925,7 +939,7 @@ DASHBOARD_HTML = """
         <h2 style="margin-bottom:10px">Submit a flag</h2>
         <input id="teamName" placeholder="Team name">
         <input id="flagCode" placeholder="FLAG{...}">
-        <button onclick="submitFlag()">Submit</button>
+        <button onclick="submitFlag()">[ SUBMIT ]</button>
         <div id="submitResult" class="result"></div>
       </div>
     </div>
@@ -950,24 +964,24 @@ DASHBOARD_HTML = """
       <div class="game-start-form">
         <label>Attackers <input type="number" id="gameAttackersInput" value="2" min="1"></label>
         <label>Defenders <input type="number" id="gameDefendersInput" value="2" min="0"></label>
-        <button class="game-btn" onclick="startGame()">&#9654; Start Game</button>
+        <button class="game-btn" onclick="startGame()">[ START GAME ]</button>
       </div>
     </div>
 
     <div class="game-roster" id="gameRoster"></div>
 
     <div class="game-admin-row" id="gameInProgressControls" hidden>
-      <button class="game-btn" id="gameResolveNightBtn" onclick="resolveNight()" hidden>&#127769; Resolve Night &rarr;</button>
-      <button class="game-btn" id="gameResolveVoteBtn" onclick="resolveVote()" hidden>&#9728;&#65039; Resolve Vote &rarr;</button>
+      <button class="game-btn" id="gameResolveNightBtn" onclick="resolveNight()" hidden>[ RESOLVE NIGHT ]</button>
+      <button class="game-btn" id="gameResolveVoteBtn" onclick="resolveVote()" hidden>[ RESOLVE VOTE ]</button>
     </div>
 
     <div class="game-admin-row" id="gameOverControls" hidden>
-      <button class="game-btn" onclick="newGameRound()">&#8635; New Game (same players)</button>
+      <button class="game-btn" onclick="newGameRound()">[ NEW ROUND -- SAME PLAYERS ]</button>
     </div>
 
     <div class="game-admin-row">
-      <button class="game-btn danger" onclick="forceEndGame()">&#9209; Force End &amp; Reveal</button>
-      <button class="game-btn danger" onclick="resetGame()">&#128465;&#65039; Reset Cyber Town</button>
+      <button class="game-btn danger" onclick="forceEndGame()">[ FORCE END &amp; REVEAL ]</button>
+      <button class="game-btn danger" onclick="resetGame()">[ RESET CYBER TOWN ]</button>
     </div>
 
     <h2 style="margin-top:22px">Live feed</h2>
@@ -1020,7 +1034,7 @@ async function refreshNow(){
         <span class="vuln-id">#${v.id}</span>
         <span class="vuln-name">${v.name}</span>
         <span class="badge ${v.patched ? 'patched' : 'open'}">${v.patched ? 'PATCHED' : 'OPEN'}</span>
-        ${v.patched ? '' : `<button class="patch-btn" onclick="patchVuln(${v.id})">Patch</button>`}
+        ${v.patched ? '' : `<button class="patch-btn" onclick="patchVuln(${v.id})">[ PATCH ]</button>`}
       </div>
     `).join('');
 
@@ -1030,22 +1044,24 @@ async function refreshNow(){
 
     const t = d.traffic;
     const banner = document.getElementById('trafficBanner');
-    const statusText = document.getElementById('trafficStatusText');
+    const statusDot = document.getElementById('trafficStatusDot');
+    const statusLabel = document.getElementById('trafficStatusLabel');
     document.getElementById('trafficRps').textContent = t.rps;
     document.getElementById('trafficBlocked').textContent = t.blocked;
     banner.className = 'traffic-banner' + (t.underAttack ? ' attack' : (t.protection ? ' protected' : ''));
-    statusText.textContent = t.underAttack
-      ? '\U0001F534 UNDER ATTACK'
-      : (t.protection ? '✅ Protected' : '\U0001F7E2 Normal traffic');
+    statusDot.className = 'status-dot ' + (t.underAttack ? 'bad' : 'good');
+    statusLabel.textContent = t.underAttack
+      ? 'UNDER ATTACK'
+      : (t.protection ? 'PROTECTED' : 'NORMAL TRAFFIC');
     const btn = document.getElementById('ddosToggleBtn');
-    btn.textContent = t.protection ? '\U0001F6D1 Disable DDoS Protection' : '\U0001F6E1️ Enable DDoS Protection';
+    btn.textContent = t.protection ? '[ DISABLE PROTECTION ]' : '[ ENABLE PROTECTION ]';
     btn.className = 'ddos-btn' + (t.protection ? ' active' : '');
     btn.dataset.enabled = t.protection ? 'true' : 'false';
 
     const attackersPanel = document.getElementById('attackersPanel');
     const attackers = t.attackers || [];
     attackersPanel.hidden = !t.protection;
-    document.getElementById('attackersCount').textContent = attackers.length;
+    document.getElementById('attackersCount').textContent = '[' + attackers.length + ']';
     const list = document.getElementById('attackersList');
     list.innerHTML = attackers.length
       ? attackers.map(a => `
@@ -1126,15 +1142,15 @@ async function refreshGame(){
         ? d.roster.map(p => `<span class="game-lobby-chip">#${p.num} ${p.name}</span>`).join('')
         : '<span style="color:var(--ink-dimmer)">No boards connected yet.</span>';
     } else if(d.phase === 'night'){
-      title.textContent = `\U0001F319 NIGHT -- Round ${d.round}`;
+      title.textContent = `NIGHT // ROUND ${d.round}`;
       sub.textContent = `${d.aliveAttackers} attacker(s) and ${d.aliveTown} defender/civilian(s) still alive. Attackers and defenders are choosing targets on their own boards.`;
     } else if(d.phase === 'day_vote'){
-      title.textContent = `☀️ DAY -- VOTE -- Round ${d.round}`;
+      title.textContent = `DAY // VOTE -- ROUND ${d.round}`;
       sub.textContent = 'Discuss out loud, then everyone votes on their own board for who to eliminate.';
     } else if(d.phase === 'game_over'){
-      title.textContent = d.winner === 'attackers' ? '\U0001F534 ATTACKERS WIN!'
-        : d.winner === 'town' ? '\U0001F535 TOWN WINS!'
-        : 'GAME OVER -- ended by instructor';
+      title.textContent = d.winner === 'attackers' ? 'ATTACKERS WIN'
+        : d.winner === 'town' ? 'TOWN WINS'
+        : 'GAME OVER -- ENDED BY INSTRUCTOR';
       sub.textContent = 'All roles are now revealed below.';
     }
 
@@ -1142,7 +1158,7 @@ async function refreshGame(){
       <div class="game-player-card ${p.alive ? '' : 'dead'}">
         <div class="game-player-num">#${p.num}</div>
         <div class="game-player-name">${p.name}</div>
-        <div class="game-player-status">${p.alive ? '\U0001F7E2' : '\U0001F480'}</div>
+        <div class="game-player-status ${p.alive ? 'alive' : 'dead'}"></div>
         ${p.role ? `<div class="game-player-role ${p.role.toLowerCase()}">${p.role}</div>` : ''}
       </div>
     `).join('');
