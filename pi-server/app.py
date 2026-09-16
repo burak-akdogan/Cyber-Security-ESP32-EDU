@@ -77,6 +77,12 @@ ip_blocked = collections.defaultdict(int)
 ddos_protection = False
 blocked_count = 0
 
+# Rolling log of the most recent requests to "/" (the DDoS demo's actual
+# target) -- newest first, capped so it can never grow unbounded during a
+# real flood. Only "/" is logged (not the CTF vulnerability paths) so this
+# never leaks one team's exploitation strategy to everyone watching.
+request_log = collections.deque(maxlen=30)
+
 # Control-plane traffic (the dashboard's own polling, flag submission,
 # patching, admin reset) is never counted or blocked -- only the public "/"
 # page is the attack surface here. This guarantees the instructor can always
@@ -96,8 +102,13 @@ def _traffic_guard():
     while traffic_times and traffic_times[0] < cutoff:
         traffic_times.popleft()
 
+    ip = request.remote_addr or "unknown"
+    log_entry = None
+    if request.path == "/":
+        log_entry = {"t": time.strftime("%H:%M:%S"), "ip": ip, "blocked": False}
+        request_log.appendleft(log_entry)
+
     if ddos_protection:
-        ip = request.remote_addr or "unknown"
         dq = ip_times[ip]
         dq.append(now)
         ip_cutoff = now - RATE_LIMIT_WINDOW
@@ -106,6 +117,8 @@ def _traffic_guard():
         if len(dq) > RATE_LIMIT_MAX:
             blocked_count += 1
             ip_blocked[ip] += 1
+            if log_entry is not None:
+                log_entry["blocked"] = True
             return jsonify(error="rate limited -- too many requests from this device"), 429
 
 
@@ -130,6 +143,7 @@ def current_traffic():
         "protection": ddos_protection,
         "blocked": blocked_count,
         "attackers": attackers,
+        "log": list(request_log),
     }
 
 
@@ -363,6 +377,7 @@ def reset_all():
     traffic_times.clear()
     ip_times.clear()
     ip_blocked.clear()
+    request_log.clear()
     ddos_protection = False
     blocked_count = 0
     log("--- round reset by instructor ---")
@@ -828,6 +843,29 @@ DASHBOARD_HTML = """
   }
   .ddos-btn.active{ border-color:rgba(0,255,157,.5); background:rgba(0,255,157,.12); color:var(--good) }
 
+  .traffic-log-panel{
+    margin:0 0 20px; border-radius:14px; overflow:hidden;
+    border:1px solid var(--panel-border); background:rgba(2,8,5,.92);
+  }
+  .traffic-log-header{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:10px 18px; font-size:11.5px; font-weight:800; letter-spacing:.06em;
+    color:var(--ink-dim); text-transform:uppercase; border-bottom:1px solid var(--panel-border);
+  }
+  .traffic-log-count{ color:var(--accent); font-weight:700; text-transform:none; letter-spacing:0 }
+  .traffic-log-body{
+    max-height:180px; overflow-y:auto; padding:10px 18px; font-size:12px;
+    display:flex; flex-direction:column; gap:3px;
+  }
+  .traffic-log-row{ display:flex; gap:12px; white-space:nowrap }
+  .traffic-log-row.blocked{ opacity:.6 }
+  .traffic-log-time{ color:var(--ink-dimmer); flex-shrink:0 }
+  .traffic-log-ip{ color:var(--accent); font-weight:700; flex-shrink:0 }
+  .traffic-log-verb{ color:var(--ink-dim); flex-shrink:0 }
+  .traffic-log-path{ color:var(--good); flex-shrink:0 }
+  .traffic-log-tag{ color:var(--bad); font-weight:700; margin-left:auto }
+  .traffic-log-empty{ color:var(--ink-dimmer); font-size:12.5px }
+
   .attackers-panel{
     margin:0 0 20px; border-radius:14px; overflow:hidden;
     border:1px solid rgba(255,59,107,.3); background:rgba(10,2,7,.85);
@@ -932,6 +970,16 @@ DASHBOARD_HTML = """
       <span class="traffic-metric"><b id="trafficRps">0</b> req/s &middot; <span id="trafficBlocked">0</span> blocked</span>
     </div>
     <button class="ddos-btn" id="ddosToggleBtn" onclick="toggleDdosProtection()">[ ENABLE PROTECTION ]</button>
+  </div>
+
+  <div class="traffic-log-panel" id="trafficLogPanel">
+    <div class="traffic-log-header">
+      <span>LIVE TRAFFIC LOG // GET /</span>
+      <span class="traffic-log-count" id="trafficLogCount">[0]</span>
+    </div>
+    <div class="traffic-log-body" id="trafficLogBody">
+      <div class="traffic-log-empty">No requests yet -- this fills up during the flag round and lights up during the DDoS demo.</div>
+    </div>
   </div>
 
   <div class="attackers-panel" id="attackersPanel" hidden>
