@@ -169,6 +169,12 @@
   .tag.easy{ color:#86efac; border-color:rgba(134,239,172,.35); background:rgba(134,239,172,.08) }
   .tag.medium{ color:#fcd34d; border-color:rgba(252,211,77,.35); background:rgba(252,211,77,.08) }
   .tag.high{ color:var(--danger); border-color:rgba(251,113,133,.4); background:rgba(251,113,133,.1) }
+  .tag.soon{ color:var(--ink-dim); border-color:var(--panel-border); background:rgba(255,255,255,.03) }
+
+  .card.card-soon{ opacity:.55; border-style:dashed }
+  .card.card-soon:hover{ transform:none; box-shadow:none; border-color:var(--panel-border) }
+  .card.card-soon:hover::before{ opacity:0 }
+  .card.card-soon h2{ color:var(--ink-dim) }
 
   .card h2{ font-family:var(--display); font-size:15.5px; font-weight:600; margin:0; color:#eef4f8 }
   .card p{ margin:0; font-size:12.5px; color:var(--ink-dim); line-height:1.5; flex-grow:1 }
@@ -813,11 +819,26 @@
         "During Night, Attackers type <code>attack &lt;player number&gt;</code> and Defenders type <code>defend &lt;player number&gt;</code>. During Day, anyone still alive types <code>vote &lt;player number&gt;</code> after the class discusses out loud.",
         "Watch the <b>Pi's own screen</b> for whose turn it is, who's still alive, and — once the game ends — everyone's real role."
       ]
+    },
+    {
+      icon: "🧩", title: "More coming soon", category: "ctf", comingSoon: true,
+      desc: "Another whole-class event is in the works — check back for an update."
+    },
+    {
+      icon: "🧩", title: "More coming soon", category: "ctf", comingSoon: true,
+      desc: "This slot's reserved for the next classroom event tool."
     }
   ];
 
   (function(){
     function cardHTML(lab, i){
+      if (lab.comingSoon) {
+        return '' +
+          '<div class="card card-soon">' +
+            '<div class="card-top"><span class="card-icon">' + lab.icon + '</span><span class="tag soon">Coming Soon</span></div>' +
+            '<div><h2>' + lab.title + '</h2><p>' + lab.desc + '</p></div>' +
+          '</div>';
+      }
       return '' +
         '<div class="card">' +
           '<div class="card-top"><span class="card-icon">' + lab.icon + '</span><span class="tag ' + lab.tag + '">' + (lab.tag === 'easy' ? 'Easy' : 'Medium') + '</span></div>' +
