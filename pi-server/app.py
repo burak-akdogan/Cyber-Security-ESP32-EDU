@@ -1118,6 +1118,20 @@ async function refreshNow(){
     btn.className = 'ddos-btn' + (t.protection ? ' active' : '');
     btn.dataset.enabled = t.protection ? 'true' : 'false';
 
+    const trafficLog = t.log || [];
+    document.getElementById('trafficLogCount').textContent = '[' + trafficLog.length + ']';
+    document.getElementById('trafficLogBody').innerHTML = trafficLog.length
+      ? trafficLog.map(e => `
+        <div class="traffic-log-row${e.blocked ? ' blocked' : ''}">
+          <span class="traffic-log-time">${e.t}</span>
+          <span class="traffic-log-ip">${e.ip}</span>
+          <span class="traffic-log-verb">GET</span>
+          <span class="traffic-log-path">/</span>
+          ${e.blocked ? '<span class="traffic-log-tag">BLOCKED</span>' : ''}
+        </div>
+      `).join('')
+      : '<div class="traffic-log-empty">No requests yet -- this fills up during the flag round and lights up during the DDoS demo.</div>';
+
     const attackersPanel = document.getElementById('attackersPanel');
     const attackers = t.attackers || [];
     attackersPanel.hidden = !t.protection;
