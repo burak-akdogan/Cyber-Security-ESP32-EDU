@@ -1,6 +1,6 @@
 {
   "name": "ctf-recon-scanner",
-  "version": "2026.09.15-8824f21",
+  "version": "2026.09.16-7d53d32",
   "new_install_prompt_erase": true,
   "builds": [
     {
