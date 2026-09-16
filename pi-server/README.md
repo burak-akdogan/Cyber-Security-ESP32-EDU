@@ -46,6 +46,33 @@ Raspberry Pi OS, skip to [Setup](#setup).
    Look for a line like `inet 10.42.0.1/24` — `10.42.0.1` is what you'll give
    students as the "Target IP." This hotspot does **not** survive a reboot;
    re-run the `nmcli` command before each class session.
+
+   > **Running 15+ boards? Consider a dedicated router instead.** The Pi's
+   > own Wi-Fi firmware caps out around ~10 reliable clients in AP mode — a
+   > full class of 15 ESP32s plus a few student phones can start dropping
+   > connections. A cheap Wi-Fi router handles this fine and needs **no
+   > internet access** — it's just acting as a local AP/switch:
+   > - Leave the router's WAN/Internet port empty; only use its LAN/Wi-Fi.
+   > - Connect the Pi to it **over Ethernet** if you can (this removes the
+   >   Pi's own Wi-Fi client-count limit entirely). Wi-Fi also works:
+   >   `sudo nmcli device wifi connect "<RouterSSID>" password "<RouterPassword>"`.
+   > - Every ESP32 and student device joins the **router's** SSID/password
+   >   instead of `ClassroomCTF` — skip the `nmcli hotspot` command above.
+   > - Find the Pi's new IP with `ip a` (check `eth0` if wired, `wlan0` if
+   >   wireless) — likely something like `192.168.1.50`, not `10.42.0.1`.
+   >   That's the new "Target IP."
+   > - Make sure the router's "client/AP isolation" setting (common on
+   >   guest networks) is **off**, or devices won't be able to reach the Pi.
+   >
+   > Prefer to keep using the Pi's own hotspot? Some Pi Wi-Fi chips support
+   > an AP-optimized firmware variant that raises the limit to ~19 clients:
+   > ```bash
+   > sudo update-alternatives --list cyfmac43455-sdio.bin
+   > ```
+   > If that lists more than one option, `--config` (instead of `--list`)
+   > lets you pick the AP-optimized one, then reboot. If the command errors
+   > out, your Pi's chip uses a different firmware file and this trick
+   > doesn't apply — use the router option above instead.
 5. **Install git and Python tooling:**
    ```bash
    sudo apt install -y python3-pip python3-venv git
