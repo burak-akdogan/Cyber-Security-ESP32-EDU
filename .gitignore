@@ -16,3 +16,6 @@ venv/
 
 # Secrets / local env
 .env
+
+# Personal notes -- not part of the public repo
+/CTF-SECTION-GUIDE-tr.md
