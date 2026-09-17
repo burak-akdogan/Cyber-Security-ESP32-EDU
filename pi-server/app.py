@@ -1075,6 +1075,18 @@ function medal(rank){
   return '';
 }
 
+// Team names, player names, and log messages built from them are
+// student-typed text rendered via innerHTML -- escape before interpolating
+// so a team/player name can't inject a live script into everyone's view.
+function escapeHtml(s){
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 async function refreshNow(){
   try{
     const r = await fetch('/api/state');
@@ -1087,7 +1099,7 @@ async function refreshNow(){
     board.innerHTML = d.board.length ? d.board.map((row, i) => `
       <div class="board-row">
         <span class="rank ${medal(i)}">${i+1}</span>
-        <span class="board-name">${row.team}</span>
+        <span class="board-name">${escapeHtml(row.team)}</span>
         <span class="board-meta">${row.found} found &middot; ${row.patched} patched</span>
         <span class="board-score">${row.score}</span>
       </div>
@@ -1103,7 +1115,7 @@ async function refreshNow(){
     `).join('');
 
     document.getElementById('events').innerHTML = d.events.length
-      ? d.events.map(e => `<div>[${e.t}] ${e.msg}</div>`).join('')
+      ? d.events.map(e => `<div>[${e.t}] ${escapeHtml(e.msg)}</div>`).join('')
       : '<div style="color:#5f7385">Nothing yet</div>';
 
     const t = d.traffic;
@@ -1226,7 +1238,7 @@ async function refreshGame(){
       title.textContent = `Waiting for players... (${d.roster.length} connected)`;
       sub.textContent = 'Flash a board with the Cyber Town firmware and connect it to the event Wi-Fi -- it appears below automatically.';
       document.getElementById('gameLobbyPlayers').innerHTML = d.roster.length
-        ? d.roster.map(p => `<span class="game-lobby-chip">#${p.num} ${p.name}</span>`).join('')
+        ? d.roster.map(p => `<span class="game-lobby-chip">#${p.num} ${escapeHtml(p.name)}</span>`).join('')
         : '<span style="color:var(--ink-dimmer)">No boards connected yet.</span>';
     } else if(d.phase === 'night'){
       title.textContent = `NIGHT // ROUND ${d.round}`;
@@ -1244,14 +1256,14 @@ async function refreshGame(){
     document.getElementById('gameRoster').innerHTML = d.roster.map(p => `
       <div class="game-player-card ${p.alive ? '' : 'dead'}">
         <div class="game-player-num">#${p.num}</div>
-        <div class="game-player-name">${p.name}</div>
+        <div class="game-player-name">${escapeHtml(p.name)}</div>
         <div class="game-player-status ${p.alive ? 'alive' : 'dead'}"></div>
         ${p.role ? `<div class="game-player-role ${p.role.toLowerCase()}">${p.role}</div>` : ''}
       </div>
     `).join('');
 
     document.getElementById('gameEvents').innerHTML = d.events.length
-      ? d.events.map(e => `<div>[${e.t}] ${e.msg}</div>`).join('')
+      ? d.events.map(e => `<div>[${e.t}] ${escapeHtml(e.msg)}</div>`).join('')
       : '<div style="color:#5f7385">Nothing yet</div>';
   }catch(e){
     // the CTF tab's refreshNow() already reports a lost connection -- avoid duplicate UI noise here
