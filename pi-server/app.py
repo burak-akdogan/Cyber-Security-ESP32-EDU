@@ -1011,6 +1011,10 @@ DASHBOARD_HTML = """
       <div class="events" id="events"><div style="color:#4d7a63">Nothing yet</div></div>
     </div>
   </div>
+
+  <div class="game-admin-row">
+    <button class="game-btn danger" onclick="resetCtfRound()">[ RESET CTF ROUND ]</button>
+  </div>
   </div>
 
   <div id="gameTab" hidden>
@@ -1158,6 +1162,15 @@ async function toggleDdosProtection(){
   const enabling = btn.dataset.enabled !== 'true';
   const body = new URLSearchParams({enabled: enabling ? 'true' : 'false'});
   await fetch('/api/ddos-protection', {method:'POST', body});
+  refreshNow();
+}
+
+async function resetCtfRound(){
+  const pin = prompt('Instructor PIN to reset the CTF round (clears scores, patches, and traffic):');
+  if(pin === null) return;
+  const body = new URLSearchParams({pin});
+  const r = await fetch('/admin/reset-all', {method:'POST', body});
+  if(!r.ok){ alert('Wrong PIN.'); return; }
   refreshNow();
 }
 

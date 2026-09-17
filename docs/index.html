@@ -89,7 +89,7 @@
 
   h1{
     font-family:var(--display); font-weight:700;
-    font-size:clamp(28px,5vw,42px); line-height:1.1;
+    font-size:clamp(20px,3.1vw,30px); line-height:1.25;
     margin:0 0 14px;
     background:linear-gradient(135deg,#f2f8fb 10%,var(--accent) 55%,var(--accent-2) 100%);
     -webkit-background-clip:text; background-clip:text; color:transparent;
@@ -159,8 +159,7 @@
   }
   .card:hover::before{ opacity:1 }
 
-  .card-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px }
-  .card-icon{ font-size:20px; line-height:1; filter:drop-shadow(0 0 10px rgba(56,189,248,.35)) }
+  .card-top{ display:flex; align-items:flex-start; justify-content:flex-end; gap:10px }
   .tag{
     font-family:var(--mono); font-size:10.5px; letter-spacing:.04em; text-transform:uppercase;
     padding:3px 9px; border-radius:999px; white-space:nowrap;
@@ -370,7 +369,6 @@
   .modal-close:hover{ color:var(--ink); border-color:var(--accent) }
 
   .lab-modal-header{ display:flex; align-items:center; gap:12px; margin-bottom:6px; padding-right:34px }
-  .lab-modal-icon{ font-size:26px }
   .lab-modal-header h2{ font-family:var(--display); font-size:19px; margin:0; color:#f2f8fb }
   .lab-modal-header .tag{ margin-top:6px }
 
@@ -466,7 +464,7 @@
 
     <div class="hero">
       <div class="kicker"><span class="dot"></span> ESP32 DevKit V1 · Browser Flashing</div>
-      <h1>⚡ Cyber Security ESP32<br>Flash a Lab From Your Browser</h1>
+      <h1>⚡ Cyber Security ESP32 — Flash a Lab From Your Browser</h1>
       <p class="lead">
         Pick a lab below to open its guide — what to expect, whether it needs your Wi-Fi info, and what
         to watch in the Console — then flash it straight from that guide using
@@ -652,7 +650,6 @@
   <aside class="lab-drawer" id="labModal">
     <button type="button" class="modal-close" id="labModalClose">✕</button>
     <div class="lab-modal-header">
-      <span class="lab-modal-icon" id="labModalIcon"></span>
       <div>
         <h2 id="labModalTitle"></h2>
         <span class="tag" id="labModalTag"></span>
@@ -679,7 +676,7 @@
   <script>
   var LABS = [
     {
-      icon: "👻", tag: "easy", title: "1 · Ghost of Networks Past",
+      tag: "easy", title: "1 · Ghost of Networks Past",
       desc: "Passive probe-request \"confession wall\".",
       manifest: "firmware/01-ghost-of-networks-past/manifest.json", needsWifi: false,
       steps: [
@@ -689,7 +686,7 @@
       ]
     },
     {
-      icon: "🐤", tag: "easy", title: "2 · Deauth Canary",
+      tag: "easy", title: "2 · Deauth Canary",
       desc: "Onboard-LED deauth/disassoc attack detector.",
       manifest: "firmware/02-deauth-canary/manifest.json", needsWifi: false,
       steps: [
@@ -699,7 +696,7 @@
       ]
     },
     {
-      icon: "📡", tag: "medium", title: "3 · Wi-Fi Ghost (motion through walls)",
+      tag: "medium", title: "3 · Wi-Fi Ghost (motion through walls)",
       desc: "RSSI-jitter motion sensor with a live dashboard.",
       manifest: "firmware/03-wifi-motion-ghost/manifest.json", wifiForm: true,
       steps: [
@@ -710,7 +707,7 @@
       ]
     },
     {
-      icon: "🪞", tag: "easy", title: "4 · Fingerprint Mirror",
+      tag: "easy", title: "4 · Fingerprint Mirror",
       desc: "Shows a connecting device its own MAC/vendor/User-Agent fingerprint.",
       manifest: "firmware/04-fingerprint-mirror/manifest.json", needsWifi: false,
       steps: [
@@ -721,7 +718,7 @@
       ]
     },
     {
-      icon: "🖋️", tag: "medium", title: "5a · Invisible Ink — Sender",
+      tag: "medium", title: "5a · Invisible Ink — Sender",
       desc: "Encodes a secret message into rotating SSID broadcasts.",
       manifest: "firmware/05-invisible-ink-sender/manifest.json", needsWifi: false,
       steps: [
@@ -731,7 +728,7 @@
       ]
     },
     {
-      icon: "🕵️", tag: "medium", title: "5b · Invisible Ink — Receiver",
+      tag: "medium", title: "5b · Invisible Ink — Receiver",
       desc: "Scans for the hidden SSIDs and reassembles the message.",
       manifest: "firmware/05-invisible-ink-receiver/manifest.json", needsWifi: false,
       steps: [
@@ -741,7 +738,7 @@
       ]
     },
     {
-      icon: "🎣", tag: "easy", title: "7 · Realistic Captive Portal Reveal",
+      tag: "easy", title: "7 · Realistic Captive Portal Reveal",
       desc: "Polished fictional-brand login that flips into an instant \"that was fake\" reveal.",
       manifest: "firmware/07-realistic-portal-reveal/manifest.json", needsWifi: false,
       steps: [
@@ -752,7 +749,7 @@
       ]
     },
     {
-      icon: "📶", tag: "easy", title: "8 · Bluetooth Poltergeist",
+      tag: "easy", title: "8 · Bluetooth Poltergeist",
       desc: "Broadcasts rotating fake BLE device names — no pairing, no data.",
       manifest: "firmware/08-bluetooth-poltergeist/manifest.json", needsWifi: false,
       steps: [
@@ -762,7 +759,7 @@
       ]
     },
     {
-      icon: "⛈️", tag: "medium", title: "9 · Deauth Storm (self-target)",
+      tag: "medium", title: "9 · Deauth Storm (self-target)",
       desc: "Real deauth frames, hard-locked to its own disposable test AP only.",
       manifest: "firmware/09-deauth-storm-self-target/manifest.json", needsWifi: false,
       steps: [
@@ -773,7 +770,7 @@
       ]
     },
     {
-      icon: "🔎", tag: "easy", title: "CTF · Recon Scanner",
+      tag: "easy", title: "CTF · Recon Scanner",
       desc: "Probes the target Raspberry Pi's common ports and paths — the \"where do I even start\" tool.",
       manifest: "firmware/ctf-recon-scanner/manifest.json", wifiForm: true, needsTargetIp: true, category: "ctf",
       steps: [
@@ -784,7 +781,7 @@
       ]
     },
     {
-      icon: "🚩", tag: "medium", title: "CTF · Flag Prober",
+      tag: "medium", title: "CTF · Flag Prober",
       desc: "An interactive console for trying each vulnerability against the target Pi yourself — nothing runs automatically.",
       manifest: "firmware/ctf-flag-prober/manifest.json", wifiForm: true, needsTargetIp: true, category: "ctf",
       steps: [
@@ -796,7 +793,7 @@
       ]
     },
     {
-      icon: "🌊", tag: "medium", title: "CTF · DDoS Flood",
+      tag: "medium", title: "CTF · DDoS Flood",
       desc: "A classroom denial-of-service demo — floods the Pi's own dashboard page on command. Run it on several boards at once.",
       manifest: "firmware/ctf-ddos-flood/manifest.json", wifiForm: true, needsTargetIp: true, category: "ctf",
       steps: [
@@ -808,7 +805,7 @@
       ]
     },
     {
-      icon: "🎯", tag: "medium", title: "Cyber Town",
+      tag: "medium", title: "Cyber Town",
       desc: "A Mafia / Town-of-Salem style social deduction game — every board gets a secret role, played live on the Pi's screen.",
       manifest: "firmware/cyber-town/manifest.json", wifiForm: true, needsTargetIp: true, category: "ctf",
       steps: [
@@ -821,11 +818,11 @@
       ]
     },
     {
-      icon: "🧩", title: "More coming soon", category: "ctf", comingSoon: true,
+      title: "More coming soon", category: "ctf", comingSoon: true,
       desc: "Another whole-class event is in the works — check back for an update."
     },
     {
-      icon: "🧩", title: "More coming soon", category: "ctf", comingSoon: true,
+      title: "More coming soon", category: "ctf", comingSoon: true,
       desc: "This slot's reserved for the next classroom event tool."
     }
   ];
@@ -835,13 +832,13 @@
       if (lab.comingSoon) {
         return '' +
           '<div class="card card-soon">' +
-            '<div class="card-top"><span class="card-icon">' + lab.icon + '</span><span class="tag soon">Coming Soon</span></div>' +
+            '<div class="card-top"><span class="tag soon">Coming Soon</span></div>' +
             '<div><h2>' + lab.title + '</h2><p>' + lab.desc + '</p></div>' +
           '</div>';
       }
       return '' +
         '<div class="card">' +
-          '<div class="card-top"><span class="card-icon">' + lab.icon + '</span><span class="tag ' + lab.tag + '">' + (lab.tag === 'easy' ? 'Easy' : 'Medium') + '</span></div>' +
+          '<div class="card-top"><span class="tag ' + lab.tag + '">' + (lab.tag === 'easy' ? 'Easy' : 'Medium') + '</span></div>' +
           '<div><h2>' + lab.title + '</h2><p>' + lab.desc + '</p></div>' +
           '<button type="button" class="card-cta" data-lab="' + i + '">View Guide &amp; Flash →</button>' +
         '</div>';
@@ -900,7 +897,6 @@
   (function(){
     var overlay = document.getElementById('labModal');
     var closeBtn = document.getElementById('labModalClose');
-    var icon = document.getElementById('labModalIcon');
     var titleEl = document.getElementById('labModalTitle');
     var tagEl = document.getElementById('labModalTag');
     var descEl = document.getElementById('labModalDesc');
@@ -940,7 +936,6 @@
       closeWifiSerial();
       currentLab = lab;
 
-      icon.textContent = lab.icon;
       titleEl.textContent = lab.title;
       tagEl.textContent = lab.tag === 'easy' ? 'Easy' : 'Medium';
       tagEl.className = 'tag ' + lab.tag;
