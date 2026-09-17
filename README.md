@@ -48,6 +48,7 @@ All libraries used ship with the ESP32 Arduino core (`WiFi.h`, `esp_wifi.h`, `We
 | 7 | [It Looked So Real](07-realistic-captive-portal-reveal-en.md) | A polished fake login, then an instant "that was fake" reveal | Why "professional-looking" ≠ safe |
 | 8 | [The Bluetooth Poltergeist](08-bluetooth-poltergeist-ble-spam-en.md) | Phantom "AirPods Pro" / "Smart Lock" devices appearing on a live scanner | Unauthenticated BLE advertising |
 | 9 | [The Deauth Storm](09-deauth-storm-self-target-en.md) | A phone repeatedly kicked off Wi-Fi — then caught live by the Lab 2 Canary | The real attack behind Lab 2, self-contained and safe |
+| 10 | [QR Quishing](10-qr-quishing-en.md) | A scanned QR code auto-joins a fake Wi-Fi network, no chance to notice the name first | QR-code phishing ("quishing") and losing your normal safety checks |
 
 ---
 
@@ -69,7 +70,7 @@ Beyond the individual labs above, this repo also includes a **live, whole-class 
 2. **[Ghost of Networks Past](01-ghost-of-networks-past-en.md)** — flash it, watch the Serial Monitor fill with places phones have been.
 
 **Then, by theme:**
-- *Attacker's view:* Realistic Captive Portal (7)
+- *Attacker's view:* Realistic Captive Portal (7) → QR Quishing (10) — run them back to back, same trick, one extra step removed (scanning vs. picking a name)
 - *Privacy leaks:* Ghost (1) → Fingerprint Mirror (4) → Wi-Fi Ghost (3)
 - *Defender's mindset:* Deauth Canary (2) → **Deauth Storm (9)** — run them side by side to watch the detector catch the attack it was built for
 - *Bluetooth:* Bluetooth Poltergeist (8) — a short, one-way BLE broadcast demo; run it last and briefly, since it's the only lab visible to *every* nearby phone, not just consenting ones
@@ -88,6 +89,7 @@ Beyond the individual labs above, this repo also includes a **live, whole-class 
 | 7 · Realistic Portal | Easy | Fictional brand only; reveal screen shows exactly what was typed — **test data only** |
 | 8 · Bluetooth Poltergeist | Easy | BLE only, no Wi-Fi involved; broadcasts to *every* nearby phone — keep it brief |
 | 9 · Deauth Storm | Medium | Transmits real deauth frames; hard-locked to its own test AP — pairs well with a second board running Lab 2 |
+| 10 · QR Quishing | Medium | Fictional brand only, **test data only**; needs a printed/displayed QR code (any free generator) — no printer required, a screen works |
 
 > **Modern phones fight back:** iOS/Android randomize MACs, suppress named probes when locked, and refuse name-only impersonation of encrypted networks. When a lab "doesn't work" against a hardened phone, that resistance *is* the lesson — discuss why.
 

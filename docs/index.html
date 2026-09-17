@@ -422,7 +422,8 @@
     font-family:var(--mono); font-size:11.5px; font-weight:600;
     display:flex; align-items:center; justify-content:center;
   }
-  .lab-steps code{ font-family:var(--mono); font-size:11.5px; color:#c3e6fb; background:rgba(56,189,248,.1); padding:1px 5px; border-radius:5px }
+  .lab-steps li > span{ min-width:0; overflow-wrap:anywhere }
+  .lab-steps code{ font-family:var(--mono); font-size:11.5px; color:#c3e6fb; background:rgba(56,189,248,.1); padding:1px 5px; border-radius:5px; overflow-wrap:anywhere }
 
   .lab-install{ padding-top:4px }
 
@@ -487,7 +488,7 @@
       <a href="https://github.com/burak-akdogan/Cyber-Security-ESP32-EDU#readme" target="_blank" rel="noopener">main README</a>.
     </div>
 
-    <p class="section-label">// 9 labs</p>
+    <p class="section-label">// 10 labs</p>
 
     <div class="grid" id="labGrid"></div>
 
@@ -770,6 +771,18 @@
       ]
     },
     {
+      tag: "medium", title: "10 · QR Quishing",
+      desc: "A Wi-Fi QR code auto-joins a fake network -- no chance to notice the name first.",
+      manifest: "firmware/10-qr-quishing/manifest.json", needsWifi: false,
+      steps: [
+        "Click Install below and flash the board.",
+        "Open Console — it prints a QR code text to generate (<code>WIFI:T:nopass;S:CampusConnect_Library_WiFi;;</code>). Paste that into any free QR code generator and display or print the result.",
+        "Have a student scan the QR code with their phone's camera — it should offer to auto-join the network with no need to browse a Wi-Fi list first.",
+        "Type in TEST data only (never a real password) on the \"verify your student account\" page, submit, and watch it flip into the reveal — which leads with why scanning skipped your normal chance to notice.",
+        "Open Console here to see the same page-view and submit events logged live."
+      ]
+    },
+    {
       tag: "easy", title: "CTF · Recon Scanner",
       desc: "Probes the target Raspberry Pi's common ports and paths — the \"where do I even start\" tool.",
       manifest: "firmware/ctf-recon-scanner/manifest.json", wifiForm: true, needsTargetIp: true, category: "ctf",
@@ -940,7 +953,7 @@
       tagEl.textContent = lab.tag === 'easy' ? 'Easy' : 'Medium';
       tagEl.className = 'tag ' + lab.tag;
       descEl.textContent = lab.desc;
-      stepsEl.innerHTML = lab.steps.map(function(s){ return '<li>' + s + '</li>'; }).join('');
+      stepsEl.innerHTML = lab.steps.map(function(s){ return '<li><span>' + s + '</span></li>'; }).join('');
       installEl.innerHTML = '';
       var btn = document.createElement('esp-web-install-button');
       btn.setAttribute('manifest', lab.manifest);
