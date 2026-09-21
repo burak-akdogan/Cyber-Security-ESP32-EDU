@@ -96,15 +96,18 @@ python3 app.py
 
 Leave that terminal running — the app has started once you see a line like
 `Running on http://0.0.0.0:8080`. The dashboard is then at
-`http://<pi-ip-address>:8080/` (e.g. `http://10.42.0.1:8080/`) — put that
-address on the projector.
+`http://<pi-ip-address>:8080/` (e.g. `http://192.168.0.138:8080/` if you're
+on a router, or `http://10.42.0.1:8080/` if you're on the Pi's own hotspot)
+— put that address on the projector.
 
 > **On the Pi's own screen** you can also use `http://localhost:8080/` or
 > `http://127.0.0.1:8080/` — those mean "this machine." From any *other*
 > device (your laptop, a student's phone, an ESP32) `localhost` refers to
-> *that* device, not the Pi — you must use the Pi's real IP address
-> (`10.42.0.1` or whatever `ip a show wlan0` showed you) instead. That other
-> device also has to be joined to the same `ClassroomCTF` Wi-Fi network first.
+> *that* device, not the Pi — you must use the Pi's real IP address (from
+> `ip a show eth0` on a router, or `ip a show wlan0` on the Pi's own
+> hotspot) instead. That other device also has to be joined to the same
+> network first — the router's Wi-Fi, or `ClassroomCTF` if you're using the
+> Pi's own hotspot.
 
 ### If port 8080 seems stuck / "address already in use"
 
@@ -124,9 +127,14 @@ error, e.g. `ModuleNotFoundError` usually means the `venv` isn't activated).
 
 ## Before class
 
-- Re-run the `nmcli device wifi hotspot ...` command from step 4 above — it
-  doesn't survive a reboot, so the Pi needs to be turned back into
-  `ClassroomCTF` each session before students connect.
+- **If you're on a router:** just power it and the Pi on — a router keeps
+  its Wi-Fi/DHCP settings across reboots, nothing to re-run. Confirm the
+  Pi's IP hasn't changed with `ip a show eth0` (most routers hand the same
+  device the same IP each time, but it's worth a quick check).
+- **If you're on the Pi's own hotspot:** re-run the
+  `nmcli device wifi hotspot ...` command from step 4 above — it doesn't
+  survive a reboot, so the Pi needs to be turned back into `ClassroomCTF`
+  each session before students connect.
 - Write the Pi's IP address somewhere visible (the projector screen itself
   works well) — students need it for the "Send to Board" form on the
   [flashing site](https://burak-akdogan.github.io/Cyber-Security-ESP32-EDU/).
@@ -137,19 +145,21 @@ error, e.g. `ModuleNotFoundError` usually means the `venv` isn't activated).
 ## Testing with one ESP32 before class
 
 1. Plug an ESP32 into your computer via USB, and make sure that computer has
-   also joined the `ClassroomCTF` Wi-Fi.
+   also joined the event network (the router's Wi-Fi, or `ClassroomCTF` if
+   you're using the Pi's own hotspot).
 2. Open the [flashing site](https://burak-akdogan.github.io/Cyber-Security-ESP32-EDU/),
    accept the code of conduct if prompted, scroll to **"Whole-Class Capture
    the Flag,"** and open **CTF · Recon Scanner**.
 3. Click **Install** and flash the board.
 4. In the same panel's Wi-Fi form, enter:
-   - **SSID:** `ClassroomCTF`
-   - **Password:** `cyberclass123`
-   - **Target IP:** `10.42.0.1` (or whatever `ip a show wlan0` showed you)
+   - **SSID / Password:** the router's, or `ClassroomCTF` / `cyberclass123`
+     for the Pi's own hotspot
+   - **Target IP:** whatever `ip a show eth0` (router) or `ip a show wlan0`
+     (Pi's own hotspot) showed you — e.g. `192.168.0.138` or `10.42.0.1`
 5. Click **Send to Board** and pick the ESP32's serial port when asked. The
    console under the form should show the board joining the Wi-Fi, then a
    list of ports/paths it found on the Pi. If that shows up, the whole chain
-   (Pi hotspot → Flask app → ESP32 → site) is working end to end.
+   (network → Flask app → ESP32 → site) is working end to end.
 
 ## Between class periods
 
