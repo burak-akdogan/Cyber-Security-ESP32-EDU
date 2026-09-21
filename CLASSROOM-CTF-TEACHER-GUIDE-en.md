@@ -31,11 +31,17 @@ Full first-time setup (Imager, OS, hotspot, Flask) is in
 session is just:
 
 1. Power on the Pi.
-2. Re-create the hotspot (does not survive a reboot):
-   ```bash
-   sudo nmcli device wifi hotspot ifname wlan0 ssid "ClassroomCTF" password "cyberclass123"
-   ip a show wlan0   # confirm the IP, e.g. 10.42.0.1
-   ```
+2. Get the Pi on the event network and find its IP:
+   - **Recommended for a full class (15+ boards): a dedicated router.** Connect the Pi to it over Ethernet — no Wi-Fi commands needed, and it survives reboots on its own:
+     ```bash
+     ip a show eth0   # confirm the IP, e.g. 192.168.0.138
+     ```
+     One-time router setup notes are in [pi-server/README.md](pi-server/README.md). The Pi's own Wi-Fi radio caps out around ~10 reliable clients, so a router avoids that ceiling entirely.
+   - **Or, for a quick test with just a couple of boards: the Pi's own hotspot** (does not survive a reboot):
+     ```bash
+     sudo nmcli device wifi hotspot ifname wlan0 ssid "ClassroomCTF" password "cyberclass123"
+     ip a show wlan0   # confirm the IP, e.g. 10.42.0.1
+     ```
 3. Start the server:
    ```bash
    cd ~/Cyber-Security-ESP32-EDU/pi-server
@@ -185,7 +191,8 @@ see the dashboard and flip protection on/off even at the worst of a flood.
 | `hostname` command errors ("extra argument") | Don't type "hostname" as part of the command — use `ip a show wlan0` instead, it's more reliable |
 | Browser shows something unrelated at "localhost" | `localhost` always means *the device you're using right now* — from a student's laptop/phone you must use the **Pi's real IP**, not `localhost` |
 | `python3 app.py` fails to bind port 8080 | Something (often a previous run you forgot to stop) already holds it: `sudo lsof -i :8080`, then `sudo kill -9 <PID>`, then retry. If `lsof` shows nothing, the port's free — the real issue is `app.py` isn't actually running (check for `ModuleNotFoundError`, usually a not-activated `venv`) |
-| Hotspot vanished / no students can join | It doesn't survive a Pi reboot — re-run the `nmcli device wifi hotspot ...` command from §3 |
+| Hotspot vanished / no students can join (Pi's own hotspot only) | It doesn't survive a Pi reboot — re-run the `nmcli device wifi hotspot ...` command from §3. Using a router instead? It keeps its settings across power cycles, nothing to re-run |
+| Boards drop connection / seem flaky with many students | Likely the Pi's own Wi-Fi radio's ~10-client ceiling — switch to a dedicated router over Ethernet (§3) |
 | An ESP32 won't flash / bootloops after flashing | Unrelated to this exercise's code — usually an interrupted/incomplete flash. Retry, using "Erase device" if the installer offers it, without unplugging mid-flash |
 
 ---
