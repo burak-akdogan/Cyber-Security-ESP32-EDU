@@ -49,7 +49,9 @@ session is just:
    python3 app.py
    ```
 4. On the Pi itself, open `http://localhost:8080/` to confirm the dashboard loads, then project it.
-5. Write on the board (or a slide): **SSID, password, and the Pi's IP address** — students need all three.
+5. Write on the board (or a slide): **SSID and password**, and — your choice —
+   - hand out the **Pi's IP address** too (simplest), or
+   - **withhold it** and have each team flash **CTF · Network Scanner** first as a short recon warm-up — it finds the IP on its own (~1-2 min per scan). One student per team scanning and sharing the result with their team is enough; no need for every board to scan separately. **Tell students explicitly to write the IP down** — the tool only reports it once.
 6. Reset state so the round starts clean:
    ```bash
    curl -X POST http://localhost:8080/admin/reset-all -d "pin=1234"

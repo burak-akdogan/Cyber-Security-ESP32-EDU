@@ -60,6 +60,7 @@ Same philosophy as every existing lab here: flash it, watch the Console, done.
 
 | Tool firmware | What it does |
 |---|---|
+| **Network Scanner** *(optional warm-up)* | Joins the event Wi-Fi with no Target IP given up front, scans the local subnet itself, and confirms which device is really the Pi before reporting its IP. Turns "here's the target" into a short recon exercise of its own — **📝 students must note the IP down**, it's shown once |
 | **Recon Scanner** | Connects to the Pi's Wi-Fi, probes a handful of common ports/paths, prints what it finds to Serial — the "where do I even start" tool |
 | **Flag Prober** | An interactive console, not an autosolver — it prints a 7-item menu and waits. The student types a short command (via a follow-up box on the site) to try one challenge at a time, reads the response, and keeps guessing (different IDs, credentials, payloads) until something works |
 | **DDoS Flood** *(separate bonus activity, see §9)* | On command (`start`/`stop`), floods the Pi's own dashboard page with requests as fast as it can. Run on several boards at once for a volume-based denial-of-service demo the instructor can then mitigate live |

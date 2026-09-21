@@ -23,7 +23,9 @@ If your instructor says it's **individual** (no teams), just type **your own nam
 ## 2. Step by step
 
 ### Step 1 — Join the event Wi-Fi
-Ask your instructor for the network name (SSID), password, and the **target IP address** of the Raspberry Pi. Join that Wi-Fi on your phone/laptop.
+Ask your instructor for the network name (SSID) and password, and — usually — the **target IP address** of the Raspberry Pi. Join that Wi-Fi on your phone/laptop.
+
+> 📝 **If your instructor doesn't give you the Target IP,** they want you to find it yourself — flash **CTF · Network Scanner** first (Step 3-5 below, no Target IP needed to start it). It'll search the network and report the Pi's IP. **Note it down immediately** — it's shown once and you'll need to type it into every other tool.
 
 ### Step 2 — Get an ESP32 (Red Team / attackers only)
 If you're on Blue Team, skip to Step 6 — you don't need a board.
@@ -32,18 +34,19 @@ If you're on Blue Team, skip to Step 6 — you don't need a board.
 Go to **https://burak-akdogan.github.io/Cyber-Security-ESP32-EDU/**. If a Code of Conduct screen appears, read and accept it.
 
 ### Step 4 — Find the CTF section
-Scroll down to **"Whole-Class Capture the Flag."** There are two tools:
+Scroll down to **"Whole-Class Capture the Flag."** There are three tools:
 
 | Tool | What it does |
 |---|---|
+| **CTF · Network Scanner** | *(only if you weren't given a Target IP)* Finds the Pi on the network for you — no Target IP needed to start it |
 | **CTF · Recon Scanner** | Lists what's open on the Pi (ports, pages) — a map, no exploiting |
 | **CTF · Flag Prober** | An interactive console — you type a command to try each challenge yourself, one at a time, as many times as you want |
 
-Start with Recon Scanner if you want to explore first, or go straight to Flag Prober.
+If you already have the Target IP, start with Recon Scanner if you want to explore first, or go straight to Flag Prober.
 
 ### Step 5 — Flash it and connect
 1. Open the tool's guide panel, click **Install**, and flash your ESP32.
-2. In the same panel, fill in the Wi-Fi form: **SSID**, **Password**, and **Target IP** (the Pi's address from Step 1).
+2. In the same panel, fill in the Wi-Fi form: **SSID** and **Password** always; **Target IP** too (the Pi's address from Step 1), unless you're running Network Scanner — it doesn't ask for one.
 3. Click **Send to Board**, and pick your ESP32's serial port when your browser asks.
 4. Watch the console that appears under the form.
 
@@ -63,6 +66,8 @@ Start with Recon Scanner if you want to explore first, or go straight to Flag Pr
   | `menu` | Show the list again |
 
   Read the response after each try, adjust your guess, and try again — as many times as you want. When a response contains a flag, it's marked `>>> FOUND`.
+
+  > 📝 **Copy or write down the flag now** — you'll type it into the scoreboard in the next step, and scrolling back through the console to find it again wastes time.
 
 ### Step 7 — Score it
 Go to the scoreboard on the classroom screen (or open `http://<pi-ip>:8080/` yourself on the same Wi-Fi). Type your **team name** and the **flag code**, then submit.

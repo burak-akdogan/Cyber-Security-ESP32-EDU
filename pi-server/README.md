@@ -161,6 +161,13 @@ error, e.g. `ModuleNotFoundError` usually means the `venv` isn't activated).
    list of ports/paths it found on the Pi. If that shows up, the whole chain
    (network → Flask app → ESP32 → site) is working end to end.
 
+> **Not sure you found the right IP?** Flash **CTF · Network Scanner**
+> instead of Recon Scanner in step 2 above — leave the Target IP field
+> blank (it doesn't ask for one) and it'll scan the network itself and
+> report back whichever IP is actually running the dashboard. Handy as an
+> independent sanity check before you write the IP on the board for a
+> whole class.
+
 ## Between class periods
 
 State (scores, found flags, which vulnerabilities are patched) lives only in
