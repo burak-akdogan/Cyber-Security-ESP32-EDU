@@ -395,14 +395,18 @@ def reset_all():
 # address. Roles (attacker / defender / civilian) are assigned secretly by
 # the instructor and never sent to any device other than the player it
 # belongs to -- the projected dashboard only ever reveals a player's role
-# once that player is eliminated, or the game is over.
+# once that player's access is revoked, or the game is over.
 # ---------------------------------------------------------------------------
 GAME_ATTACKER = "attacker"
 GAME_DEFENDER = "defender"
 GAME_CIVILIAN = "civilian"
-GAME_ROLE_LABEL = {GAME_ATTACKER: "Attacker", GAME_DEFENDER: "Defender", GAME_CIVILIAN: "Civilian"}
+GAME_SOCIAL = "social_engineer"
+GAME_ROLE_LABEL = {
+    GAME_ATTACKER: "Attacker", GAME_DEFENDER: "Defender",
+    GAME_CIVILIAN: "Civilian", GAME_SOCIAL: "Social Engineer",
+}
 
-game_players = {}        # mac -> {"num", "name", "role", "alive"}
+game_players = {}        # mac -> {"num", "name", "role", "alive", "inbox", "inbox_reply"}
 game_next_num = 1
 game_phase = "lobby"     # lobby | night | day_vote | game_over
 game_round = 0
@@ -445,7 +449,10 @@ def game_register():
     if mac not in game_players:
         num = game_next_num
         game_next_num += 1
-        game_players[mac] = {"num": num, "name": f"Player {num}", "role": None, "alive": True}
+        game_players[mac] = {
+            "num": num, "name": f"Player {num}", "role": None, "alive": True,
+            "inbox": None, "inbox_reply": None,
+        }
         game_log(f"Player {num} joined the lobby")
     p = game_players[mac]
     return jsonify(num=p["num"], name=p["name"], phase=game_phase)
@@ -475,6 +482,8 @@ def game_state():
         "name": p["name"],
         "alive": p["alive"],
         "role": GAME_ROLE_LABEL.get(p["role"]) if p["role"] else None,
+        "inboxMessage": p["inbox"]["text"] if p.get("inbox") else None,
+        "inboxReply": p["inbox_reply"]["text"] if p.get("inbox_reply") else None,
     }
     if game_phase == "game_over":
         result["winner"] = game_winner
@@ -513,9 +522,11 @@ def game_start():
     try:
         num_attackers = int(request.form.get("attackers", 0))
         num_defenders = int(request.form.get("defenders", 0))
+        num_social = int(request.form.get("social_engineers", 0))
     except ValueError:
-        return jsonify(error="attackers/defenders must be numbers"), 400
-    if num_attackers < 1 or num_defenders < 0 or num_attackers + num_defenders >= len(players):
+        return jsonify(error="role counts must be numbers"), 400
+    total_special = num_attackers + num_defenders + num_social
+    if num_attackers < 1 or num_defenders < 0 or num_social < 0 or total_special >= len(players):
         return jsonify(error="role counts don't leave room for civilians"), 400
 
     random.shuffle(players)
@@ -523,7 +534,9 @@ def game_start():
         p["role"] = GAME_ATTACKER
     for p in players[num_attackers:num_attackers + num_defenders]:
         p["role"] = GAME_DEFENDER
-    for p in players[num_attackers + num_defenders:]:
+    for p in players[num_attackers + num_defenders:total_special]:
+        p["role"] = GAME_SOCIAL
+    for p in players[total_special:]:
         p["role"] = GAME_CIVILIAN
 
     game_phase = "night"
@@ -531,7 +544,8 @@ def game_start():
     game_night_actions.clear()
     game_votes.clear()
     game_log(f"--- Game started: {num_attackers} attacker(s), {num_defenders} defender(s), "
-             f"{len(players) - num_attackers - num_defenders} civilian(s) ---")
+             f"{num_social} social engineer(s), "
+             f"{len(players) - total_special} civilian(s) ---")
     game_log("Night 1 has begun")
     return jsonify(status="started")
 
@@ -564,6 +578,49 @@ def game_defend():
     return jsonify(status="ok")
 
 
+@app.route("/game/persuade", methods=["POST"])
+def game_persuade():
+    mac = request.form.get("mac", "").strip()
+    p = game_players.get(mac)
+    if not p or not p["alive"] or p["role"] != GAME_SOCIAL or game_phase != "night":
+        return jsonify(error="not allowed right now"), 400
+    try:
+        target_num = int(request.form.get("target", ""))
+    except ValueError:
+        return jsonify(error="bad target"), 400
+    message = request.form.get("message", "").strip()[:200]
+    if not message:
+        return jsonify(error="empty message"), 400
+    target = game_player_by_num(target_num)
+    if not target or not target["alive"] or target is p:
+        return jsonify(error="invalid target"), 400
+    # The target only ever sees the message text, never who sent it --
+    # staying anonymous is the whole point of the role.
+    target["inbox"] = {"from_mac": mac, "text": message}
+    game_log(f"Player {target_num} ({target['name']}) received a mysterious message...")
+    return jsonify(status="ok")
+
+
+@app.route("/game/reply", methods=["POST"])
+def game_reply():
+    mac = request.form.get("mac", "").strip()
+    p = game_players.get(mac)
+    if not p or not p["alive"]:
+        return jsonify(error="not allowed right now"), 400
+    inbox = p.get("inbox")
+    if not inbox:
+        return jsonify(error="no message to reply to"), 400
+    reply_text = request.form.get("message", "").strip()[:200]
+    if not reply_text:
+        return jsonify(error="empty reply"), 400
+    sender = game_players.get(inbox["from_mac"])
+    if sender:
+        sender["inbox_reply"] = {"text": reply_text}
+    game_log(f"Player {p['num']} ({p['name']}) replied to a mysterious message.")
+    p["inbox"] = None
+    return jsonify(status="ok")
+
+
 @app.route("/game/resolve-night", methods=["POST"])
 def game_resolve_night():
     global game_phase, game_winner
@@ -589,7 +646,7 @@ def game_resolve_night():
             game_log(f"An attack on Player {target_num} ({target['name']}) was blocked!")
         else:
             target["alive"] = False
-            game_log(f"Player {target_num} ({target['name']}) was eliminated overnight! "
+            game_log(f"Player {target_num} ({target['name']}) was HACKED overnight! "
                      f"Role: {GAME_ROLE_LABEL.get(target['role'], 'Unknown')}")
 
     game_night_actions.clear()
@@ -633,12 +690,12 @@ def game_resolve_vote():
             target = game_player_by_num(top_targets[0])
             if target and target["alive"]:
                 target["alive"] = False
-                game_log(f"Player {target['num']} ({target['name']}) was voted out! "
+                game_log(f"Player {target['num']} ({target['name']}) was voted out -- access revoked! "
                          f"Role: {GAME_ROLE_LABEL.get(target['role'], 'Unknown')}")
         else:
-            game_log("Vote tied -- no one is eliminated.")
+            game_log("Vote tied -- no one is locked out.")
     else:
-        game_log("No votes cast -- no one is eliminated.")
+        game_log("No votes cast -- no one is locked out.")
 
     winner = game_check_winner()
     if winner:
@@ -661,6 +718,8 @@ def game_new_round():
     for p in game_players.values():
         p["role"] = None
         p["alive"] = True
+        p["inbox"] = None
+        p["inbox_reply"] = None
     game_night_actions.clear()
     game_votes.clear()
     game_phase = "lobby"
@@ -943,6 +1002,7 @@ DASHBOARD_HTML = """
   .game-player-role.attacker{ color:var(--bad) }
   .game-player-role.defender{ color:var(--accent) }
   .game-player-role.civilian{ color:var(--ink-dim) }
+  .game-player-role.social-engineer{ color:var(--warn) }
 
   .game-admin-row{ display:flex; gap:10px; margin-top:18px; flex-wrap:wrap }
 </style></head><body>
@@ -1029,6 +1089,7 @@ DASHBOARD_HTML = """
       <div class="game-start-form">
         <label>Attackers <input type="number" id="gameAttackersInput" value="2" min="1"></label>
         <label>Defenders <input type="number" id="gameDefendersInput" value="2" min="0"></label>
+        <label>Social Engineers <input type="number" id="gameSocialInput" value="1" min="0"></label>
         <button class="game-btn" onclick="startGame()">[ START GAME ]</button>
       </div>
     </div>
@@ -1243,10 +1304,10 @@ async function refreshGame(){
         : '<span style="color:var(--ink-dimmer)">No boards connected yet.</span>';
     } else if(d.phase === 'night'){
       title.textContent = `NIGHT // ROUND ${d.round}`;
-      sub.textContent = `${d.aliveAttackers} attacker(s) and ${d.aliveTown} defender/civilian(s) still alive. Attackers and defenders are choosing targets on their own boards.`;
+      sub.textContent = `${d.aliveAttackers} attacker(s) and ${d.aliveTown} non-attacker(s) still alive. Attackers, defenders, and social engineers are all acting on their own boards.`;
     } else if(d.phase === 'day_vote'){
       title.textContent = `DAY // VOTE -- ROUND ${d.round}`;
-      sub.textContent = 'Discuss out loud, then everyone votes on their own board for who to eliminate.';
+      sub.textContent = 'Discuss out loud, then everyone votes on their own board for who to lock out.';
     } else if(d.phase === 'game_over'){
       title.textContent = d.winner === 'attackers' ? 'ATTACKERS WIN'
         : d.winner === 'town' ? 'TOWN WINS'
@@ -1259,7 +1320,7 @@ async function refreshGame(){
         <div class="game-player-num">#${p.num}</div>
         <div class="game-player-name">${escapeHtml(p.name)}</div>
         <div class="game-player-status ${p.alive ? 'alive' : 'dead'}"></div>
-        ${p.role ? `<div class="game-player-role ${p.role.toLowerCase()}">${p.role}</div>` : ''}
+        ${p.role ? `<div class="game-player-role ${p.role.toLowerCase().replace(/\s+/g, '-')}">${p.role}</div>` : ''}
       </div>
     `).join('');
 
@@ -1275,7 +1336,8 @@ setInterval(refreshGame, 2000);
 async function startGame(){
   const attackers = document.getElementById('gameAttackersInput').value;
   const defenders = document.getElementById('gameDefendersInput').value;
-  const body = new URLSearchParams({attackers, defenders});
+  const social_engineers = document.getElementById('gameSocialInput').value;
+  const body = new URLSearchParams({attackers, defenders, social_engineers});
   const r = await fetch('/game/start', {method:'POST', body});
   const d = await r.json();
   if(!r.ok){ alert(d.error || 'Could not start the game.'); return; }

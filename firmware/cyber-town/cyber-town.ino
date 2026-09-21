@@ -1,11 +1,15 @@
 // cyber-town.ino
 // Classroom game: a Mafia / Town-of-Salem style social deduction game
 // played over the classroom's own Raspberry Pi. Every ESP32 is one
-// anonymous player -- roles (Attacker / Defender / Civilian) are assigned
-// secretly by the Pi and only ever sent back to the player they belong to.
-// Interaction is typed Serial commands (attack/defend/vote); the onboard
-// LED (GPIO2 on most DevKit V1 boards) mirrors your status at a glance.
-// See CLASSROOM-CTF-EVENT-en.md and pi-server/README.md for the full game.
+// anonymous player -- roles (Attacker / Defender / Civilian / Social
+// Engineer) are assigned secretly by the Pi and only ever sent back to the
+// player they belong to. A Social Engineer can privately message another
+// player through the Pi (the target never learns who sent it) and read
+// their reply -- a human-factor attack, not a technical one.
+// Interaction is typed Serial commands (attack/defend/vote/persuade/reply);
+// the onboard LED (GPIO2 on most DevKit V1 boards) mirrors your status at
+// a glance. See CLASSROOM-CTF-EVENT-en.md and pi-server/README.md for the
+// full game.
 
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -23,6 +27,8 @@ String myName;
 String myPhase = "";
 String myRole = "";
 bool amAlive = true;
+String myInboxMessage = "";
+String myInboxReply = "";
 
 unsigned long lastPoll = 0;
 const unsigned long POLL_INTERVAL = 1500;
@@ -45,6 +51,36 @@ String sanitizeTargetIP(String ip) {
 
 String base() {
   return "http://" + targetIP + ":8080";
+}
+
+// A free-typed persuade/reply message needs proper form-urlencoding --
+// unlike a plain numeric target, it can contain spaces, "&", "=", etc.,
+// which would otherwise corrupt the POST body or get misread as new fields.
+String urlEncode(const String& s) {
+  String out = "";
+  const char* hex = "0123456789ABCDEF";
+  for (size_t i = 0; i < s.length(); i++) {
+    char c = s[i];
+    if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+      out += c;
+    } else if (c == ' ') {
+      out += '+';
+    } else {
+      out += '%';
+      out += hex[(c >> 4) & 0xF];
+      out += hex[c & 0xF];
+    }
+  }
+  return out;
+}
+
+// The Pi's hand-rolled JSON parser (jsonStr below) doesn't handle escaped
+// quotes inside a string value -- swap out the characters that would
+// confuse it rather than build a full JSON parser for one edge case.
+String sanitizeMessage(String s) {
+  s.replace("\"", "'");
+  s.replace("\\", "/");
+  return s;
 }
 
 bool httpPostForm(const String& path, const String& body, String& outBody) {
@@ -103,10 +139,16 @@ void printMenu() {
     Serial.println("  attack <player number>   e.g. attack 5");
   } else if (myPhase == "night" && myRole == "Defender" && amAlive) {
     Serial.println("  defend <player number>   e.g. defend 5");
+  } else if (myPhase == "night" && myRole == "Social Engineer" && amAlive) {
+    Serial.println("  persuade <player number> <message>");
+    Serial.println("    e.g. persuade 5 Hi, this is IT -- can you confirm your password?");
   } else if (myPhase == "day_vote" && amAlive) {
     Serial.println("  vote <player number>     e.g. vote 5");
   } else {
     Serial.println("  (nothing to do right now -- watch the projector)");
+  }
+  if (myInboxMessage.length() > 0) {
+    Serial.println("  reply <message>          respond to your pending message");
   }
   Serial.println("  menu                     show this again");
   Serial.println("===============================");
@@ -155,9 +197,22 @@ void pollState() {
   }
 
   if (amAlive && !newAlive) {
-    Serial.println("\nYou have been ELIMINATED. You can still watch, but you can't act anymore.");
+    Serial.println("\nYour access has been REVOKED. You can still watch, but you can't act anymore.");
   }
   amAlive = newAlive;
+
+  String newInboxMessage = jsonStr(resp, "inboxMessage");
+  if (newInboxMessage.length() > 0 && newInboxMessage != myInboxMessage) {
+    myInboxMessage = newInboxMessage;
+    Serial.println("\n>>> NEW MESSAGE: " + myInboxMessage);
+    Serial.println("You don't know who sent this. Type 'reply <message>' to respond.");
+  }
+
+  String newInboxReply = jsonStr(resp, "inboxReply");
+  if (newInboxReply.length() > 0 && newInboxReply != myInboxReply) {
+    myInboxReply = newInboxReply;
+    Serial.println("\n>>> REPLY RECEIVED: " + myInboxReply);
+  }
 
   if (newPhase != myPhase) {
     myPhase = newPhase;
@@ -173,9 +228,11 @@ void pollState() {
       Serial.println("Your role was: " + myRole);
       Serial.println("Check the projector for the full reveal.");
     } else if (myPhase == "lobby") {
-      // A new round started -- clear the old role so it can't leak into the
-      // next one for the ~1.5s before the fresh role arrives on a later poll.
+      // A new round started -- clear the old role/messages so nothing stale
+      // lingers for the ~1.5s before fresh state arrives on a later poll.
       myRole = "";
+      myInboxMessage = "";
+      myInboxReply = "";
       Serial.println("\n=== Back in the lobby -- waiting for the next round ===");
     }
     printMenu();
@@ -201,7 +258,34 @@ void handleCommand(String line) {
     if (ok) {
       Serial.println("Locked in: " + cmd + " " + String(target));
     } else {
-      Serial.println("That didn't work -- wrong phase, wrong role, or you're eliminated. Type 'menu' to check.");
+      Serial.println("That didn't work -- wrong phase, wrong role, or your access is revoked. Type 'menu' to check.");
+    }
+  } else if (cmd == "persuade") {
+    int sp2 = argStr.indexOf(' ');
+    if (sp2 < 0) { Serial.println("Usage: persuade <player number> <message>"); return; }
+    int target = argStr.substring(0, sp2).toInt();
+    String message = argStr.substring(sp2 + 1);
+    message.trim();
+    if (message.length() == 0) { Serial.println("Usage: persuade <player number> <message>"); return; }
+    message = sanitizeMessage(message);
+    String resp;
+    bool ok = httpPostForm("/game/persuade",
+                            "mac=" + myMac + "&target=" + String(target) + "&message=" + urlEncode(message),
+                            resp);
+    if (ok) {
+      Serial.println("Message sent to Player " + String(target) + ".");
+    } else {
+      Serial.println("That didn't work -- wrong phase, wrong role, invalid target, or your access is revoked.");
+    }
+  } else if (cmd == "reply") {
+    String message = sanitizeMessage(argStr);
+    if (message.length() == 0) { Serial.println("Usage: reply <message>"); return; }
+    String resp;
+    bool ok = httpPostForm("/game/reply", "mac=" + myMac + "&message=" + urlEncode(message), resp);
+    if (ok) {
+      Serial.println("Reply sent.");
+    } else {
+      Serial.println("That didn't work -- you don't have a pending message to reply to.");
     }
   } else {
     Serial.println("Unknown command. Type 'menu' for what you can do right now.");
