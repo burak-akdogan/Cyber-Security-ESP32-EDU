@@ -1408,7 +1408,7 @@ async function refreshGame(){
         <div class="game-player-num">#${p.num}</div>
         <div class="game-player-name">${escapeHtml(p.name)}</div>
         <div class="game-player-status ${p.alive ? 'alive' : 'dead'}"></div>
-        ${p.role ? `<div class="game-player-role ${p.role.toLowerCase().replace(/\s+/g, '-')}">${p.role}</div>` : ''}
+        ${p.role ? `<div class="game-player-role ${p.role.toLowerCase().replace(/\\s+/g, '-')}">${p.role}</div>` : ''}
       </div>
     `).join('');
 
