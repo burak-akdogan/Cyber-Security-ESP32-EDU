@@ -363,7 +363,8 @@ def toggle_ddos_protection():
 
 
 # ---------------------------------------------------------------------------
-# Instructor-only reset between class periods (not linked from the UI)
+# Instructor-only reset between class periods -- PIN-gated (the dashboard's
+# own "[ RESET CTF ROUND ]" button calls this, prompting for the PIN first)
 # ---------------------------------------------------------------------------
 @app.route("/admin/reset-all", methods=["POST"])
 def reset_all():

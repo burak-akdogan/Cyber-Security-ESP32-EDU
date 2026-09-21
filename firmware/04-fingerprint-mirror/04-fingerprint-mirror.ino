@@ -23,6 +23,14 @@ String vendorFor(const String& mac) {
   return "Unknown (look up the OUI!)";
 }
 
+String htmlEscape(String s) {
+  s.replace("&", "&amp;");
+  s.replace("<", "&lt;");
+  s.replace(">", "&gt;");
+  s.replace("\"", "&quot;");
+  return s;
+}
+
 // Locally-administered bit set in first octet => randomized MAC
 bool isRandomized(const String& mac) {
   int firstByte = strtol(mac.substring(0,2).c_str(), NULL, 16);
@@ -50,6 +58,7 @@ void handlePortal() {
                (isRandomized(mac) ? "YES (privacy on \xF0\x9F\x91\x8D)" : "NO (real, trackable!)");
   String ua = web.header("User-Agent");
   if (ua == "") ua = "(not sent)";
+  else ua = htmlEscape(ua);
 
   String h = "<html><head><meta name='viewport' content='width=device-width,initial-scale=1'>";
   h += "<style>body{font-family:sans-serif;max-width:480px;margin:24px auto;padding:0 14px}";

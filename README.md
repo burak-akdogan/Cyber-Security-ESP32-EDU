@@ -38,6 +38,8 @@ All libraries used ship with the ESP32 Arduino core (`WiFi.h`, `esp_wifi.h`, `We
 
 ## 📚 The Labs
 
+> Numbering skips **0** and **6** on purpose — an Evil Twin lab (0) and a Karma-attack demo (6) were both removed: Lab 7 already covers rogue-AP phishing better, and Karma-style attacks don't work reliably against modern phones. The remaining numbers are kept stable so existing links/guides don't break.
+
 | # | Lab | What students witness | Core concept |
 |---|---|---|---|
 | 1 | [Ghost of Networks Past](01-ghost-of-networks-past-en.md) | Phones broadcasting the names of every network they remember | Probe-request location-history leak |
