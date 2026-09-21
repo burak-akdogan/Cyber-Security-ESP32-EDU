@@ -83,6 +83,11 @@ blocked_count = 0
 # never leaks one team's exploitation strategy to everyone watching.
 request_log = collections.deque(maxlen=30)
 
+# Rolling history of req/s samples, one appended each time the dashboard
+# polls /api/state (~every 2s) -- enough for a small trend chart without
+# needing to store every individual request timestamp.
+rps_history = collections.deque(maxlen=30)
+
 # Control-plane traffic (the dashboard's own polling, flag submission,
 # patching, admin reset) is never counted or blocked -- only the public "/"
 # page is the attack surface here. This guarantees the instructor can always
@@ -137,13 +142,16 @@ def current_traffic():
                 attackers.append({"ip": ip, "rps": rps, "blocked": blocked})
         attackers.sort(key=lambda a: (-a["rps"], -a["blocked"]))
         attackers = attackers[:10]
+    rps_now = round(recent / TRAFFIC_WINDOW, 1)
+    rps_history.append(rps_now)
     return {
-        "rps": round(recent / TRAFFIC_WINDOW, 1),
+        "rps": rps_now,
         "underAttack": (recent / TRAFFIC_WINDOW) >= ATTACK_THRESHOLD,
         "protection": ddos_protection,
         "blocked": blocked_count,
         "attackers": attackers,
         "log": list(request_log),
+        "rpsHistory": list(rps_history),
     }
 
 
@@ -379,6 +387,7 @@ def reset_all():
     ip_times.clear()
     ip_blocked.clear()
     request_log.clear()
+    rps_history.clear()
     ddos_protection = False
     blocked_count = 0
     log("--- round reset by instructor ---")
@@ -816,6 +825,29 @@ DASHBOARD_HTML = """
   .sub{color:var(--ink-dim); font-size:13px; line-height:1.6; margin:10px 0 22px; max-width:760px}
   .sub b{color:var(--ink)}
 
+  .kpi-row{ display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:12px; margin:0 0 16px }
+  .kpi-card{
+    padding:16px; border-radius:12px; border:1px solid var(--panel-border); background:var(--panel);
+    text-align:center;
+  }
+  .kpi-value{
+    font-size:28px; font-weight:900; color:var(--good); font-variant-numeric:tabular-nums;
+    text-shadow:0 0 12px rgba(0,255,157,.4); line-height:1.2;
+  }
+  .kpi-label{ font-size:10.5px; color:var(--ink-dim); letter-spacing:.06em; text-transform:uppercase; margin-top:4px }
+  .kpi-card.threat-elevated .kpi-value{ color:var(--warn); text-shadow:0 0 12px rgba(240,255,92,.4) }
+  .kpi-card.threat-critical .kpi-value{ color:var(--bad); text-shadow:0 0 12px rgba(255,59,107,.4) }
+
+  .chart-panel{
+    margin:0 0 20px; padding:14px 18px 10px; border-radius:14px;
+    border:1px solid var(--panel-border); background:var(--panel);
+  }
+  .chart-header{
+    font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--ink-dim); margin-bottom:8px;
+  }
+  .chart-svg{ width:100%; height:60px; display:block }
+
   .layout{display:grid; grid-template-columns:1.2fr 1fr; gap:18px; align-items:start}
   @media (max-width:880px){.layout{grid-template-columns:1fr}}
 
@@ -1022,6 +1054,30 @@ DASHBOARD_HTML = """
   </div>
 
   <div id="ctfTab">
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-value" id="kpiFlags">0</div>
+      <div class="kpi-label">Flag Captures</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value" id="kpiTeams">0</div>
+      <div class="kpi-label">Active Teams</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value" id="kpiPatch">0%</div>
+      <div class="kpi-label">Patch Rate</div>
+    </div>
+    <div class="kpi-card" id="kpiThreatCard">
+      <div class="kpi-value" id="kpiThreat">NORMAL</div>
+      <div class="kpi-label">Threat Level</div>
+    </div>
+  </div>
+
+  <div class="chart-panel">
+    <div class="chart-header">REQUEST VOLUME // LAST 60s</div>
+    <svg class="chart-svg" id="rpsChart" viewBox="0 0 300 60" preserveAspectRatio="none"></svg>
+  </div>
+
   <div class="traffic-banner" id="trafficBanner">
     <div class="traffic-left">
       <span class="traffic-status">
@@ -1137,6 +1193,25 @@ function medal(rank){
   return '';
 }
 
+// Small hand-rolled sparkline -- no charting library, this Pi may have no
+// internet access to fetch one from a CDN. history[] is oldest-first.
+function renderRpsChart(history){
+  const svg = document.getElementById('rpsChart');
+  if (!history.length) { svg.innerHTML = ''; return; }
+  const w = 300, h = 60;
+  const max = Math.max(...history, 5);
+  const step = history.length > 1 ? w / (history.length - 1) : 0;
+  const points = history.map((v, i) => {
+    const x = (i * step).toFixed(1);
+    const y = (h - (v / max) * h).toFixed(1);
+    return x + ',' + y;
+  }).join(' ');
+  const areaPoints = '0,' + h + ' ' + points + ' ' + w + ',' + h;
+  svg.innerHTML =
+    '<polygon points="' + areaPoints + '" fill="rgba(0,255,242,.12)"></polygon>' +
+    '<polyline points="' + points + '" fill="none" stroke="#00fff2" stroke-width="2"></polyline>';
+}
+
 // Team names, player names, and log messages built from them are
 // student-typed text rendered via innerHTML -- escape before interpolating
 // so a team/player name can't inject a live script into everyone's view.
@@ -1180,7 +1255,20 @@ async function refreshNow(){
       ? d.events.map(e => `<div>[${e.t}] ${escapeHtml(e.msg)}</div>`).join('')
       : '<div style="color:#5f7385">Nothing yet</div>';
 
+    const totalFound = d.board.reduce((sum, row) => sum + row.found, 0);
+    document.getElementById('kpiFlags').textContent = totalFound;
+    document.getElementById('kpiTeams').textContent = d.board.length;
+    const patchedCount = d.vulns.filter(v => v.patched).length;
+    document.getElementById('kpiPatch').textContent = Math.round(patchedCount / d.vulns.length * 100) + '%';
+
     const t = d.traffic;
+    const threatCard = document.getElementById('kpiThreatCard');
+    const threatLabel = document.getElementById('kpiThreat');
+    const threatLevel = t.underAttack ? 'critical' : (t.rps > 5 ? 'elevated' : 'normal');
+    threatCard.className = 'kpi-card' + (threatLevel !== 'normal' ? ' threat-' + threatLevel : '');
+    threatLabel.textContent = threatLevel.toUpperCase();
+    renderRpsChart(t.rpsHistory || []);
+
     const banner = document.getElementById('trafficBanner');
     const statusDot = document.getElementById('trafficStatusDot');
     const statusLabel = document.getElementById('trafficStatusLabel');
