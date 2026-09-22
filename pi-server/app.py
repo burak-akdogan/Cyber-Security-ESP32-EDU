@@ -837,6 +837,7 @@ DASHBOARD_HTML = """
   .kpi-label{ font-size:10.5px; color:var(--ink-dim); letter-spacing:.06em; text-transform:uppercase; margin-top:4px }
   .kpi-card.threat-elevated .kpi-value{ color:var(--warn); text-shadow:0 0 12px rgba(240,255,92,.4) }
   .kpi-card.threat-critical .kpi-value{ color:var(--bad); text-shadow:0 0 12px rgba(255,59,107,.4) }
+  .kpi-card.threat-mitigated .kpi-value{ color:var(--accent); text-shadow:0 0 12px rgba(0,255,242,.4) }
 
   .chart-panel{
     margin:0 0 20px; padding:14px 18px 10px; border-radius:14px;
@@ -1269,7 +1270,9 @@ async function refreshNow(){
     const t = d.traffic;
     const threatCard = document.getElementById('kpiThreatCard');
     const threatLabel = document.getElementById('kpiThreat');
-    const threatLevel = t.underAttack ? 'critical' : (t.rps > 5 ? 'elevated' : 'normal');
+    const threatLevel = (t.underAttack && t.protection) ? 'mitigated'
+      : t.underAttack ? 'critical'
+      : (t.rps > 5 ? 'elevated' : 'normal');
     threatCard.className = 'kpi-card' + (threatLevel !== 'normal' ? ' threat-' + threatLevel : '');
     threatLabel.textContent = threatLevel.toUpperCase();
     renderRpsChart(t.rpsHistory || []);
