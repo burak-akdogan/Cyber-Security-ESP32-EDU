@@ -923,6 +923,11 @@ DASHBOARD_HTML = """
     animation:attackPulse 1s ease-in-out infinite;
   }
   @keyframes attackPulse{ 0%,100%{box-shadow:0 0 0 rgba(255,59,107,0)} 50%{box-shadow:0 0 26px rgba(255,59,107,.45)} }
+  .traffic-banner.mitigated{
+    background:rgba(0,255,242,.08); border-color:rgba(0,255,242,.55);
+    animation:mitigatedPulse 1.4s ease-in-out infinite;
+  }
+  @keyframes mitigatedPulse{ 0%,100%{box-shadow:0 0 0 rgba(0,255,242,0)} 50%{box-shadow:0 0 22px rgba(0,255,242,.35)} }
   .traffic-banner.protected{ background:rgba(0,255,157,.06); border-color:rgba(0,255,157,.5) }
   .traffic-left{ display:flex; align-items:center; gap:14px; flex-wrap:wrap }
   .traffic-status{ display:flex; align-items:center; gap:9px; font-size:15px; font-weight:800; letter-spacing:.03em; white-space:nowrap }
@@ -1274,11 +1279,17 @@ async function refreshNow(){
     const statusLabel = document.getElementById('trafficStatusLabel');
     document.getElementById('trafficRps').textContent = t.rps;
     document.getElementById('trafficBlocked').textContent = t.blocked;
-    banner.className = 'traffic-banner' + (t.underAttack ? ' attack' : (t.protection ? ' protected' : ''));
-    statusDot.className = 'status-dot ' + (t.underAttack ? 'bad' : 'good');
-    statusLabel.textContent = t.underAttack
+    // Traffic still counts toward "under attack" even while protection is on --
+    // the flood hasn't stopped, it's just being cheaply rejected now. Show a
+    // distinct "mitigated" state instead of the same red alarm as unprotected,
+    // so turning protection on visibly changes the dashboard.
+    const mitigated = t.underAttack && t.protection;
+    const rawAttack = t.underAttack && !t.protection;
+    banner.className = 'traffic-banner' + (rawAttack ? ' attack' : (mitigated ? ' mitigated' : (t.protection ? ' protected' : '')));
+    statusDot.className = 'status-dot ' + (rawAttack ? 'bad' : 'good');
+    statusLabel.textContent = rawAttack
       ? 'UNDER ATTACK'
-      : (t.protection ? 'PROTECTED' : 'NORMAL TRAFFIC');
+      : (mitigated ? 'ATTACK MITIGATED' : (t.protection ? 'PROTECTED' : 'NORMAL TRAFFIC'));
     const btn = document.getElementById('ddosToggleBtn');
     btn.textContent = t.protection ? '[ DISABLE PROTECTION ]' : '[ ENABLE PROTECTION ]';
     btn.className = 'ddos-btn' + (t.protection ? ' active' : '');
