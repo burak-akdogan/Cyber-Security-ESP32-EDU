@@ -961,6 +961,7 @@ DASHBOARD_HTML = """
   .traffic-log-ip{ color:var(--accent); font-weight:700; flex-shrink:0 }
   .traffic-log-verb{ color:var(--ink-dim); flex-shrink:0 }
   .traffic-log-path{ color:var(--good); flex-shrink:0 }
+  .traffic-log-count{ color:var(--warn); font-weight:700; flex-shrink:0 }
   .traffic-log-tag{ color:var(--bad); font-weight:700; margin-left:auto }
   .traffic-log-empty{ color:var(--ink-dimmer); font-size:12.5px }
 
@@ -1218,6 +1219,22 @@ function renderRpsChart(history){
     '<polyline points="' + points + '" fill="none" stroke="#00fff2" stroke-width="2"></polyline>';
 }
 
+// Collapses a run of consecutive same-IP, same-outcome requests (exactly
+// what a flood looks like) into one row with a count, instead of dozens of
+// visually identical "GET /" lines. log[] is newest-first.
+function groupTrafficLog(log){
+  const groups = [];
+  for (const e of log) {
+    const last = groups[groups.length - 1];
+    if (last && last.ip === e.ip && last.blocked === e.blocked) {
+      last.count++;
+    } else {
+      groups.push({t: e.t, ip: e.ip, blocked: e.blocked, count: 1});
+    }
+  }
+  return groups;
+}
+
 // Team names, player names, and log messages built from them are
 // student-typed text rendered via innerHTML -- escape before interpolating
 // so a team/player name can't inject a live script into everyone's view.
@@ -1299,14 +1316,16 @@ async function refreshNow(){
     btn.dataset.enabled = t.protection ? 'true' : 'false';
 
     const trafficLog = t.log || [];
+    const trafficLogGrouped = groupTrafficLog(trafficLog);
     document.getElementById('trafficLogCount').textContent = '[' + trafficLog.length + ']';
-    document.getElementById('trafficLogBody').innerHTML = trafficLog.length
-      ? trafficLog.map(e => `
+    document.getElementById('trafficLogBody').innerHTML = trafficLogGrouped.length
+      ? trafficLogGrouped.map(e => `
         <div class="traffic-log-row${e.blocked ? ' blocked' : ''}">
           <span class="traffic-log-time">${e.t}</span>
           <span class="traffic-log-ip">${e.ip}</span>
           <span class="traffic-log-verb">GET</span>
           <span class="traffic-log-path">/</span>
+          ${e.count > 1 ? `<span class="traffic-log-count">&times;${e.count}</span>` : ''}
           ${e.blocked ? '<span class="traffic-log-tag">BLOCKED</span>' : ''}
         </div>
       `).join('')
