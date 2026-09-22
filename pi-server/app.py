@@ -945,10 +945,15 @@ DASHBOARD_HTML = """
     margin:0 0 20px; border-radius:14px; overflow:hidden;
     border:1px solid var(--panel-border); background:rgba(2,8,5,.92);
   }
-  .traffic-log-header{
+  .traffic-log-header{ padding:10px 18px; border-bottom:1px solid var(--panel-border) }
+  .traffic-log-header-top{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
-    padding:10px 18px; font-size:11.5px; font-weight:800; letter-spacing:.06em;
-    color:var(--ink-dim); text-transform:uppercase; border-bottom:1px solid var(--panel-border);
+    font-size:11.5px; font-weight:800; letter-spacing:.06em;
+    color:var(--ink-dim); text-transform:uppercase;
+  }
+  .traffic-log-sub{
+    margin-top:4px; font-size:11px; color:var(--ink-dimmer);
+    text-transform:none; letter-spacing:0; font-weight:400;
   }
   .traffic-log-count{ color:var(--accent); font-weight:700; text-transform:none; letter-spacing:0 }
   .traffic-log-body{
@@ -1098,8 +1103,11 @@ DASHBOARD_HTML = """
 
   <div class="traffic-log-panel" id="trafficLogPanel">
     <div class="traffic-log-header">
-      <span>LIVE TRAFFIC LOG // GET /</span>
-      <span class="traffic-log-count" id="trafficLogCount">[0]</span>
+      <div class="traffic-log-header-top">
+        <span>LIVE TRAFFIC LOG // GET /</span>
+        <span class="traffic-log-count" id="trafficLogCount">[0]</span>
+      </div>
+      <div class="traffic-log-sub">Every request hitting the dashboard's own homepage, in real time — repeats from the same device are grouped with a &times;count so a flood doesn't just look like a wall of identical lines.</div>
     </div>
     <div class="traffic-log-body" id="trafficLogBody">
       <div class="traffic-log-empty">No requests yet -- this fills up during the flag round and lights up during the DDoS demo.</div>
